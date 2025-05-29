@@ -1,0 +1,41 @@
+/// Type alias validation tests
+///
+/// This test validates that type aliases work correctly and can be used in configurations.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/workspace.pkl" as workspace
+
+facts {
+  // Test enum type aliases with string literals
+  ["CodeownersOrderBy accepts valid values"] {
+    "file-source" is workspace.CodeownersOrderBy &&
+    "project-name" is workspace.CodeownersOrderBy
+  }
+
+  ["CodeownersOrderBy rejects invalid values"] {
+    !("invalid-value" is workspace.CodeownersOrderBy)
+  }
+
+  ["HasherOptimization accepts valid values"] {
+    "accuracy" is workspace.HasherOptimization &&
+    "performance" is workspace.HasherOptimization
+  }
+
+  ["HasherOptimization rejects invalid values"] {
+    !("invalid-optimization" is workspace.HasherOptimization)
+  }
+
+  ["HasherWalkStrategy accepts valid values"] {
+    "glob" is workspace.HasherWalkStrategy &&
+    "vcs" is workspace.HasherWalkStrategy
+  }
+
+  ["HasherWalkStrategy rejects invalid values"] {
+    !("invalid-strategy" is workspace.HasherWalkStrategy)
+  }
+}
+
+examples {
+  // Type alias validation is done in facts section
+}

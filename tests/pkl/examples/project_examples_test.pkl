@@ -1,0 +1,93 @@
+/// Realistic project configuration examples
+///
+/// This test validates that realistic project configurations can be created.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/project.pkl" as project
+
+local exampleTypeScriptProject = new {
+  // Example TypeScript frontend project
+  language = "typescript" as project.LanguageType
+  platform = "node" as project.PlatformType
+  stack = "frontend" as project.StackType
+}
+
+local exampleRustProject = new {
+  // Example Rust backend project
+  language = "rust" as project.LanguageType
+  platform = "rust" as project.PlatformType
+  stack = "backend" as project.StackType
+}
+
+local examplePythonProject = new {
+  // Example Python project
+  language = "python" as project.LanguageType
+  platform = "python" as project.PlatformType
+  stack = "backend" as project.StackType
+}
+
+local exampleProjectWithDependencies = new {
+  language = "javascript" as project.LanguageType
+  platform = "node" as project.PlatformType
+  stack = "frontend" as project.StackType
+  dependsOn = new {
+    // Dependencies with different scopes
+    api = new {
+      scope = "production" as project.DependencyScope
+      source = "explicit" as project.DependencySource
+    }
+    testUtils = new {
+      scope = "development" as project.DependencyScope
+      source = "implicit" as project.DependencySource
+    }
+  }
+}
+
+facts {
+  ["typescript project is valid"] = (exampleTypeScriptProject != null)
+
+  ["rust project is valid"] = (exampleRustProject != null)
+
+  ["python project is valid"] = (examplePythonProject != null)
+
+  ["project with dependencies is valid"] = (exampleProjectWithDependencies != null)
+
+  // Test that enum combinations work correctly
+  ["typescript uses node platform"] = (
+    exampleTypeScriptProject.language == "typescript" &&
+    exampleTypeScriptProject.platform == "node"
+  )
+
+  ["rust uses rust platform"] = (
+    exampleRustProject.language == "rust" &&
+    exampleRustProject.platform == "rust"
+  )
+
+  // Test dependency configuration
+  ["production dependency is configured correctly"] = (
+    exampleProjectWithDependencies.dependsOn.api.scope == "production"
+  )
+
+  ["development dependency is configured correctly"] = (
+    exampleProjectWithDependencies.dependsOn.testUtils.scope == "development"
+  )
+}
+
+examples {
+  ["typescript frontend project"] {
+    exampleTypeScriptProject
+  }
+
+  ["rust backend project"] {
+    exampleRustProject
+  }
+
+  ["python project"] {
+    examplePythonProject
+  }
+
+  ["project with dependencies"] {
+    exampleProjectWithDependencies
+  }
+}

@@ -1,15 +1,22 @@
+//! `generator.rs`
 //! Core schema generation functionality.
+//!
+//! (c) 2025 Stash AI Inc (knitli)
+//!   - Created by Adam Poulemanos ([@bashandbone](https://github.com/bashandbone))
+//! Licensed under the [Plain MIT License](https://plainlicense.org/licenses/permissive/mit/)
 
-use crate::config::{GeneratorConfig, SchemaType};
+use crate::config::{GeneratorConfig, SchemaType as ConfigSchemaType};
 use crate::templates::TemplateEngine;
 use crate::types::*;
 use crate::Result;
 use miette::{IntoDiagnostic, WrapErr};
 use moon_config::*;
-use schematic::{Config, SchemaGenerator as SchematicGenerator};
+use schematic::schema::SchemaGenerator as SchematicGenerator;
+use schematic::Config;
+use schematic_types::{Schema, SchemaField, SchemaType};
 use std::fs;
 use std::path::Path;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 /// Main schema generator for Moon configurations
 pub struct SchemaGenerator {
@@ -30,7 +37,7 @@ impl SchemaGenerator {
     /// Generate all Moon configuration schemas
     pub fn generate_all(&self) -> Result<()> {
         info!("Generating all Moon configuration schemas");
-        
+
         fs::create_dir_all(&self.config.output_dir)
             .into_diagnostic()
             .wrap_err("Failed to create output directory")?;
@@ -47,7 +54,10 @@ impl SchemaGenerator {
             self.generate_module_index()?;
         }
 
-        info!("Successfully generated all schemas in: {}", self.config.output_dir.display());
+        info!(
+            "Successfully generated all schemas in: {}",
+            self.config.output_dir.display()
+        );
         Ok(())
     }
 
@@ -85,53 +95,75 @@ impl SchemaGenerator {
     fn generate_schema_for_type<T: Config>(&self, type_name: &str) -> Result<String> {
         let mut generator = SchematicGenerator::default();
         generator.add::<T>();
-        let schemas = generator.generate()
-            .into_diagnostic()
-            .wrap_err_with(|| format!("Failed to generate schema for {}", type_name))?;
+
+        // Get the schemas from the generator
+        let schema_map = generator.schemas;
 
         // Convert schematic schema to our Pkl representation
-        let pkl_module = self.convert_schemas_to_pkl(schemas, type_name)?;
-        
+        let pkl_module = self.convert_schemas_to_pkl(schema_map, type_name)?;
+
         // Render using template engine
-        self.template_engine.render_module(&pkl_module, &self.config)
+        self.template_engine
+            .render_module(&pkl_module, &self.config)
     }
 
     /// Write schema to file
     fn generate_workspace_schema_file(&self) -> Result<()> {
         let schema = self.generate_workspace_schema()?;
-        let file_path = self.config.output_dir.join(SchemaType::Workspace.filename());
+        let file_path = self
+            .config
+            .output_dir
+            .join(ConfigSchemaType::Workspace.filename());
         self.write_schema_file(&file_path, &schema, "workspace")
     }
 
     fn generate_project_schema_file(&self) -> Result<()> {
         let schema = self.generate_project_schema()?;
-        let file_path = self.config.output_dir.join(SchemaType::Project.filename());
+        let file_path = self
+            .config
+            .output_dir
+            .join(ConfigSchemaType::Project.filename());
         self.write_schema_file(&file_path, &schema, "project")
     }
 
     fn generate_template_schema_file(&self) -> Result<()> {
         let schema = self.generate_template_schema()?;
-        let file_path = self.config.output_dir.join(SchemaType::Template.filename());
+        let file_path = self
+            .config
+            .output_dir
+            .join(ConfigSchemaType::Template.filename());
         self.write_schema_file(&file_path, &schema, "template")
     }
 
     fn generate_toolchain_schema_file(&self) -> Result<()> {
         let schema = self.generate_toolchain_schema()?;
-        let file_path = self.config.output_dir.join(SchemaType::Toolchain.filename());
+        let file_path = self
+            .config
+            .output_dir
+            .join(ConfigSchemaType::Toolchain.filename());
         self.write_schema_file(&file_path, &schema, "toolchain")
     }
 
     fn generate_tasks_schema_file(&self) -> Result<()> {
         let schema = self.generate_tasks_schema()?;
-        let file_path = self.config.output_dir.join(SchemaType::Tasks.filename());
+        let file_path = self
+            .config
+            .output_dir
+            .join(ConfigSchemaType::Tasks.filename());
         self.write_schema_file(&file_path, &schema, "tasks")
     }
 
     fn write_schema_file(&self, path: &Path, content: &str, schema_name: &str) -> Result<()> {
         fs::write(path, content)
             .into_diagnostic()
-            .wrap_err_with(|| format!("Failed to write {} schema to {}", schema_name, path.display()))?;
-        
+            .wrap_err_with(|| {
+                format!(
+                    "Failed to write {} schema to {}",
+                    schema_name,
+                    path.display()
+                )
+            })?;
+
         info!("Generated {} schema: {}", schema_name, path.display());
         Ok(())
     }
@@ -140,11 +172,11 @@ impl SchemaGenerator {
     fn generate_module_index(&self) -> Result<()> {
         let index_content = self.template_engine.render_module_index(&self.config)?;
         let index_path = self.config.output_dir.join("mod.pkl");
-        
+
         fs::write(&index_path, index_content)
             .into_diagnostic()
             .wrap_err("Failed to write module index")?;
-        
+
         info!("Generated module index: {}", index_path.display());
         Ok(())
     }
@@ -152,12 +184,15 @@ impl SchemaGenerator {
     /// Convert schematic schemas to Pkl module representation
     fn convert_schemas_to_pkl(
         &self,
-        schemas: indexmap::IndexMap<String, schematic_types::Schema>,
+        schemas: indexmap::IndexMap<String, Schema>,
         type_name: &str,
     ) -> Result<PklModule> {
         let mut module = PklModule {
             name: type_name.to_string(),
-            documentation: Some(format!("Moon {} configuration schema", type_name.to_lowercase())),
+            documentation: Some(format!(
+                "Moon {} configuration schema",
+                type_name.to_lowercase()
+            )),
             imports: vec![],
             exports: vec![],
             types: vec![],
@@ -168,7 +203,7 @@ impl SchemaGenerator {
         for (name, schema) in schemas {
             let pkl_type = self.convert_schema_to_pkl_type(&schema, &name)?;
             module.types.push(pkl_type);
-            
+
             // Add export for the main type
             if name == type_name || name.ends_with("Config") {
                 module.exports.push(PklExport {
@@ -182,13 +217,7 @@ impl SchemaGenerator {
     }
 
     /// Convert a single schema to a Pkl type
-    fn convert_schema_to_pkl_type(
-        &self,
-        schema: &schematic_types::Schema,
-        name: &str,
-    ) -> Result<PklType> {
-        use schematic_types::SchemaType;
-
+    fn convert_schema_to_pkl_type(&self, schema: &Schema, name: &str) -> Result<PklType> {
         let mut pkl_type = PklType {
             name: name.to_string(),
             documentation: schema.description.clone(),
@@ -196,6 +225,7 @@ impl SchemaGenerator {
             properties: vec![],
             abstract_type: false,
             extends: vec![],
+            enum_values: None,
         };
 
         match &schema.ty {
@@ -206,11 +236,32 @@ impl SchemaGenerator {
                 }
             }
             SchemaType::Enum(enum_type) => {
-                pkl_type.kind = PklTypeKind::Union;
-                // Handle enum variants
-                for value in &enum_type.values {
-                    // Convert enum values to properties or constraints
-                    // This is simplified - you'd want more sophisticated enum handling
+                // For string enums, create a typealias with union of string literals
+                if !enum_type.values.is_empty() {
+                    pkl_type.kind = PklTypeKind::TypeAlias;
+                    let enum_values: Vec<String> = enum_type
+                        .values
+                        .iter()
+                        .map(|v| match v {
+                            schematic_types::LiteralValue::String(s) => format!("\"{}\"", s),
+                            schematic_types::LiteralValue::Int(i) => i.to_string(),
+                            schematic_types::LiteralValue::Bool(b) => b.to_string(),
+                            _ => format!("{:?}", v), // Fallback for other variants
+                        })
+                        .collect();
+
+                    pkl_type.enum_values = Some(enum_values.join(" | "));
+                } else {
+                    // Empty enum, keep as class but mark it
+                    pkl_type.documentation = Some(format!(
+                        "{}{}This is an empty enum type.",
+                        pkl_type.documentation.as_deref().unwrap_or(""),
+                        if pkl_type.documentation.is_some() {
+                            "\n\n"
+                        } else {
+                            ""
+                        }
+                    ));
                 }
             }
             _ => {
@@ -223,28 +274,329 @@ impl SchemaGenerator {
     }
 
     /// Convert a struct field to a Pkl property
-    fn convert_field_to_property(
-        &self,
-        name: &str,
-        field: &schematic_types::SchemaField,
-    ) -> Result<PklProperty> {
+    fn convert_field_to_property(&self, name: &str, field: &SchemaField) -> Result<PklProperty> {
         let type_name = self.get_pkl_type_name(&field.schema)?;
-        
+        let default = self.extract_default_value(&field.schema)?;
+        let constraints = self.extract_constraints(&field.schema)?;
+        let examples = self.extract_examples(&field.schema)?;
+
         Ok(PklProperty {
             name: name.to_string(),
             type_name,
             documentation: field.schema.description.clone(),
             optional: field.optional,
-            default: field.default.as_ref().map(|v| format!("{:?}", v)),
-            constraints: vec![], // TODO: Convert validation constraints
-            examples: vec![], // TODO: Extract examples if available
+            default,
+            constraints,
+            examples,
         })
     }
 
+    /// Extract default value from schema if available
+    fn extract_default_value(&self, schema: &Schema) -> Result<Option<String>> {
+        let default_value = match &schema.ty {
+            SchemaType::String(string_type) => {
+                if let Some(enum_values) = &string_type.enum_values {
+                    if !enum_values.is_empty() {
+                        Some(format!("\"{}\"", enum_values[0]))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            SchemaType::Boolean(_) => Some("false".to_string()),
+            SchemaType::Integer(int_type) => {
+                if let Some(enum_values) = &int_type.enum_values {
+                    if !enum_values.is_empty() {
+                        Some(enum_values[0].to_string())
+                    } else {
+                        None
+                    }
+                } else if let Some(min) = int_type.min {
+                    Some(min.to_string())
+                } else {
+                    None
+                }
+            }
+            SchemaType::Float(float_type) => {
+                if let Some(enum_values) = &float_type.enum_values {
+                    if !enum_values.is_empty() {
+                        Some(enum_values[0].to_string())
+                    } else {
+                        None
+                    }
+                } else if let Some(min) = float_type.min {
+                    Some(min.to_string())
+                } else {
+                    None
+                }
+            }
+            SchemaType::Array(_) => Some("new Listing {}".to_string()),
+            SchemaType::Object(_) => Some("new Mapping {}".to_string()),
+            _ => None,
+        };
+
+        Ok(default_value)
+    }
+
+    /// Extract validation constraints from schema
+    fn extract_constraints(&self, schema: &Schema) -> Result<Vec<PklConstraint>> {
+        let mut constraints = Vec::new();
+
+        match &schema.ty {
+            SchemaType::String(string_type) => {
+                if let Some(min_length) = string_type.min_length {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Length,
+                        value: format!("length >= {}", min_length),
+                        message: Some(format!("Must be at least {} characters long", min_length)),
+                    });
+                }
+
+                if let Some(max_length) = string_type.max_length {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Length,
+                        value: format!("length <= {}", max_length),
+                        message: Some(format!("Must be at most {} characters long", max_length)),
+                    });
+                }
+
+                if let Some(pattern) = &string_type.pattern {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Pattern,
+                        value: format!("matches(Regex(#\"{}\"#))", pattern),
+                        message: Some(format!("Must match pattern: {}", pattern)),
+                    });
+                }
+
+                if let Some(enum_values) = &string_type.enum_values {
+                    if enum_values.len() > 1 {
+                        let values = enum_values
+                            .iter()
+                            .map(|v| format!("\"{}\"", v))
+                            .collect::<Vec<_>>()
+                            .join("|");
+                        constraints.push(PklConstraint {
+                            kind: PklConstraintKind::Custom,
+                            value: format!("oneOf({})", values),
+                            message: Some(format!("Must be one of: {}", enum_values.join(", "))),
+                        });
+                    }
+                }
+            }
+
+            SchemaType::Integer(int_type) => {
+                if let Some(min) = int_type.min {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Min,
+                        value: format!("this >= {}", min),
+                        message: Some(format!("Must be at least {}", min)),
+                    });
+                }
+
+                if let Some(max) = int_type.max {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Max,
+                        value: format!("this <= {}", max),
+                        message: Some(format!("Must be at most {}", max)),
+                    });
+                }
+
+                if let Some(multiple_of) = int_type.multiple_of {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Custom,
+                        value: format!("this % {} == 0", multiple_of),
+                        message: Some(format!("Must be a multiple of {}", multiple_of)),
+                    });
+                }
+
+                if let Some(enum_values) = &int_type.enum_values {
+                    if enum_values.len() > 1 {
+                        let values = enum_values
+                            .iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<_>>()
+                            .join("|");
+                        constraints.push(PklConstraint {
+                            kind: PklConstraintKind::Custom,
+                            value: format!("oneOf({})", values),
+                            message: Some(format!(
+                                "Must be one of: {}",
+                                enum_values
+                                    .iter()
+                                    .map(|v| v.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            )),
+                        });
+                    }
+                }
+            }
+
+            SchemaType::Float(float_type) => {
+                if let Some(min) = float_type.min {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Min,
+                        value: format!("this >= {}", min),
+                        message: Some(format!("Must be at least {}", min)),
+                    });
+                }
+
+                if let Some(max) = float_type.max {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Max,
+                        value: format!("this <= {}", max),
+                        message: Some(format!("Must be at most {}", max)),
+                    });
+                }
+            }
+
+            SchemaType::Array(array_type) => {
+                if let Some(min_length) = array_type.min_length {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Length,
+                        value: format!("length >= {}", min_length),
+                        message: Some(format!("Must contain at least {} items", min_length)),
+                    });
+                }
+
+                if let Some(max_length) = array_type.max_length {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Length,
+                        value: format!("length <= {}", max_length),
+                        message: Some(format!("Must contain at most {} items", max_length)),
+                    });
+                }
+
+                if array_type.unique == Some(true) {
+                    constraints.push(PklConstraint {
+                        kind: PklConstraintKind::Custom,
+                        value: "isDistinct".to_string(),
+                        message: Some("All items must be unique".to_string()),
+                    });
+                }
+            }
+
+            _ => {}
+        }
+
+        Ok(constraints)
+    }
+
+    /// Extract example values from schema
+    fn extract_examples(&self, schema: &Schema) -> Result<Vec<String>> {
+        let mut examples = Vec::new();
+
+        match &schema.ty {
+            SchemaType::String(string_type) => {
+                if let Some(enum_values) = &string_type.enum_values {
+                    examples.extend(enum_values.iter().take(3).map(|v| format!("\"{}\"", v)));
+                } else if let Some(format) = &string_type.format {
+                    match format.as_str() {
+                        "url" => examples.push("\"https://example.com\"".to_string()),
+                        "email" => examples.push("\"user@example.com\"".to_string()),
+                        "uri" => examples.push("\"https://api.example.com/v1\"".to_string()),
+                        "uuid" => {
+                            examples.push("\"550e8400-e29b-41d4-a716-446655440000\"".to_string())
+                        }
+                        "date" => examples.push("\"2023-12-25\"".to_string()),
+                        "time" => examples.push("\"14:30:00\"".to_string()),
+                        "datetime" => examples.push("\"2023-12-25T14:30:00Z\"".to_string()),
+                        _ => examples.push(format!("\"example-{}\"", format)),
+                    }
+                } else if string_type.pattern.is_some() {
+                    examples.push("\"example\"".to_string());
+                } else {
+                    examples.push("\"example\"".to_string());
+                }
+            }
+
+            SchemaType::Integer(int_type) => {
+                if let Some(enum_values) = &int_type.enum_values {
+                    examples.extend(enum_values.iter().take(3).map(|v| v.to_string()));
+                } else {
+                    let example_value = if let Some(min) = int_type.min {
+                        min
+                    } else if let Some(max) = int_type.max {
+                        std::cmp::max(0, max)
+                    } else {
+                        42
+                    };
+                    examples.push(example_value.to_string());
+                }
+            }
+
+            SchemaType::Float(float_type) => {
+                if let Some(enum_values) = &float_type.enum_values {
+                    examples.extend(enum_values.iter().take(3).map(|v| v.to_string()));
+                } else {
+                    let example_value = if let Some(min) = float_type.min {
+                        min
+                    } else if let Some(max) = float_type.max {
+                        f64::max(0.0, max)
+                    } else {
+                        3.14
+                    };
+                    examples.push(example_value.to_string());
+                }
+            }
+
+            SchemaType::Boolean(_) => {
+                examples.push("true".to_string());
+                examples.push("false".to_string());
+            }
+
+            SchemaType::Array(array_type) => {
+                let item_type = self.get_pkl_type_name(&array_type.items_type)?;
+                examples.push(format!("new Listing<{}> {{}}", item_type));
+
+                match &array_type.items_type.ty {
+                    SchemaType::String(_) => {
+                        examples.push("new Listing { \"item1\"; \"item2\" }".to_string())
+                    }
+                    SchemaType::Integer(_) => examples.push("new Listing { 1; 2; 3 }".to_string()),
+                    _ => {}
+                }
+            }
+
+            SchemaType::Object(object_type) => {
+                let key_type = self.get_pkl_type_name(&object_type.key_type)?;
+                let value_type = self.get_pkl_type_name(&object_type.value_type)?;
+                examples.push(format!("new Mapping<{}, {}> {{}}", key_type, value_type));
+            }
+
+            SchemaType::Enum(enum_type) => {
+                // For enum types, use the debug representation and clean it up for Pkl
+                examples.extend(enum_type.values.iter().take(3).map(|v| {
+                    let debug_str = format!("{:?}", v);
+                    // Clean up the debug representation for Pkl
+                    if debug_str.starts_with("String(") && debug_str.ends_with(")") {
+                        // Extract string value: String("value") -> "value"
+                        debug_str[7..debug_str.len() - 1].to_string()
+                    } else if debug_str.starts_with("Int(") && debug_str.ends_with(")") {
+                        // Extract int value: Int(42) -> 42
+                        debug_str[4..debug_str.len() - 1].to_string()
+                    } else if debug_str.starts_with("Bool(") && debug_str.ends_with(")") {
+                        // Extract bool value: Bool(true) -> true
+                        debug_str[5..debug_str.len() - 1].to_string()
+                    } else if debug_str == "Null" {
+                        "null".to_string()
+                    } else {
+                        // Default: wrap in quotes for safety
+                        format!("\"{}\"", debug_str.replace("\"", "\\\""))
+                    }
+                }));
+            }
+
+            _ => {}
+        }
+
+        Ok(examples)
+    }
+
     /// Get the Pkl type name for a schema
-    fn get_pkl_type_name(&self, schema: &schematic_types::Schema) -> Result<String> {
-        use schematic_types::SchemaType;
-        
+    fn get_pkl_type_name(&self, schema: &Schema) -> Result<String> {
         let type_name = match &schema.ty {
             SchemaType::String(_) => "String".to_string(),
             SchemaType::Boolean(_) => "Boolean".to_string(),
@@ -260,14 +612,18 @@ impl SchemaGenerator {
                 format!("Mapping<{}, {}>", key_type, value_type)
             }
             SchemaType::Reference(ref_name) => ref_name.clone(),
-            SchemaType::Union(_) => "Any".to_string(), // Simplified
+            SchemaType::Union(_) => "Any".to_string(),
             SchemaType::Null => "Null".to_string(),
             SchemaType::Unknown => "Any".to_string(),
             _ => "Any".to_string(),
         };
 
-        // Apply custom type mappings
-        Ok(self.config.type_mappings.get(&type_name).cloned().unwrap_or(type_name))
+        Ok(self
+            .config
+            .type_mappings
+            .get(&type_name)
+            .cloned()
+            .unwrap_or(type_name))
     }
 }
 

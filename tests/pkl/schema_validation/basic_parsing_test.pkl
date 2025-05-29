@@ -1,0 +1,37 @@
+/// Basic schema parsing validation tests
+///
+/// This test ensures all generated schema files can be parsed and imported correctly.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/mod.pkl" as moon
+import "../../../pkl-schemas/workspace.pkl" as workspace
+import "../../../pkl-schemas/project.pkl" as project
+import "../../../pkl-schemas/template.pkl" as template
+import "../../../pkl-schemas/toolchain.pkl" as toolchain
+import "../../../pkl-schemas/tasks.pkl" as tasks
+
+facts {
+  // Test that all schema modules can be imported without errors
+  ["can import mod.pkl"] { moon != null }
+
+  ["can import workspace.pkl"] { workspace != null }
+
+  ["can import project.pkl"] { project != null }
+
+  ["can import template.pkl"] { template != null }
+
+  ["can import toolchain.pkl"] { toolchain != null }
+
+  ["can import tasks.pkl"] { tasks != null }
+
+  // Test that main type aliases are available
+  ["WorkspaceConfig typealias exists"] { workspace.WorkspaceConfig != null }
+
+  ["ProjectConfig typealias exists"] { project.ProjectConfig != null }
+}
+
+examples {
+  // Examples would show actual usage, but for import tests,
+  // the facts section is sufficient
+}

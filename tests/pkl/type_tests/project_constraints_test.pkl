@@ -1,0 +1,83 @@
+/// Project type constraints validation tests
+///
+/// This test validates project-specific type aliases and constraints.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/project.pkl" as project
+
+facts {
+  // Test DependencyScope enum
+  ["DependencyScope accepts all valid scopes"] = (
+    "build" is project.DependencyScope &&
+    "development" is project.DependencyScope &&
+    "peer" is project.DependencyScope &&
+    "production" is project.DependencyScope &&
+    "root" is project.DependencyScope
+  )
+
+  ["DependencyScope rejects invalid scopes"] = !(
+    "invalid-scope" is project.DependencyScope
+  )
+
+  // Test DependencySource enum
+  ["DependencySource accepts valid sources"] = (
+    "explicit" is project.DependencySource &&
+    "implicit" is project.DependencySource
+  )
+
+  ["DependencySource rejects invalid sources"] = !(
+    "invalid-source" is project.DependencySource
+  )
+
+  // Test LanguageType enum
+  ["LanguageType accepts all supported languages"] = (
+    "bash" is project.LanguageType &&
+    "batch" is project.LanguageType &&
+    "go" is project.LanguageType &&
+    "javascript" is project.LanguageType &&
+    "php" is project.LanguageType &&
+    "python" is project.LanguageType &&
+    "ruby" is project.LanguageType &&
+    "rust" is project.LanguageType &&
+    "typescript" is project.LanguageType &&
+    "unknown" is project.LanguageType
+  )
+
+  ["LanguageType rejects invalid languages"] = !(
+    "java" is project.LanguageType ||
+    "c++" is project.LanguageType
+  )
+
+  // Test PlatformType enum
+  ["PlatformType accepts all supported platforms"] = (
+    "bun" is project.PlatformType &&
+    "deno" is project.PlatformType &&
+    "node" is project.PlatformType &&
+    "python" is project.PlatformType &&
+    "rust" is project.PlatformType &&
+    "system" is project.PlatformType &&
+    "unknown" is project.PlatformType
+  )
+
+  ["PlatformType rejects invalid platforms"] = !(
+    "dotnet" is project.PlatformType
+  )
+
+  // Test StackType enum
+  ["StackType accepts all valid stack types"] = (
+    "backend" is project.StackType &&
+    "frontend" is project.StackType &&
+    "infrastructure" is project.StackType &&
+    "systems" is project.StackType &&
+    "unknown" is project.StackType
+  )
+
+  ["StackType rejects invalid stack types"] = !(
+    "mobile" is project.StackType
+  )
+}
+
+examples {
+  // Type constraint validation is done in facts section
+}

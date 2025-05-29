@@ -1,4 +1,9 @@
+//! `utils.rs`
 //! Utility functions for the schema generator.
+//!
+//! (c) 2025 Stash AI Inc (knitli)
+//!   - Created by Adam Poulemanos ([@bashandbone](https://github.com/bashandbone))
+//! Licensed under the [Plain MIT License](https://plainlicense.org/licenses/permissive/mit/)
 
 use crate::Result;
 use miette::{IntoDiagnostic, WrapErr};
@@ -27,7 +32,7 @@ pub fn write_string_to_file(path: &Path, content: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
         ensure_dir_exists(parent)?;
     }
-    
+
     fs::write(path, content)
         .into_diagnostic()
         .wrap_err_with(|| format!("Failed to write file: {}", path.display()))
@@ -63,7 +68,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
         .trim_end_matches("Config")
         .trim_end_matches("Type")
         .trim_start_matches("Partial");
-    
+
     capitalize_first_letter(cleaned)
 }
 
@@ -72,13 +77,13 @@ pub fn is_valid_pkl_identifier(name: &str) -> bool {
     if name.is_empty() {
         return false;
     }
-    
+
     // First character must be letter or underscore
     let first_char = name.chars().next().unwrap();
     if !first_char.is_alphabetic() && first_char != '_' {
         return false;
     }
-    
+
     // Rest must be alphanumeric or underscore
     name.chars().skip(1).all(|c| c.is_alphanumeric() || c == '_')
 }

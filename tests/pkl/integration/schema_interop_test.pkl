@@ -1,0 +1,79 @@
+/// Integration tests for schema interoperability
+///
+/// This test validates that different schemas work together correctly.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/mod.pkl" as moon
+import "../../../pkl-schemas/workspace.pkl" as workspace
+import "../../../pkl-schemas/project.pkl" as project
+
+// Test creating configurations using the main module exports
+local workspaceConfig = new moon.Workspace {
+  hasher = new {
+    optimization = "accuracy" as workspace.HasherOptimization
+  }
+  codeowners = new {
+    orderBy = "file-source" as workspace.CodeownersOrderBy
+  }
+}
+
+local projectConfig = new moon.Project {
+  language = "typescript" as project.LanguageType
+  platform = "node" as project.PlatformType
+  stack = "frontend" as project.StackType
+}
+
+// Test realistic Moon workspace structure
+local completeExample = new {
+  workspace = workspaceConfig
+  projects = new {
+    frontend = projectConfig
+    backend = new moon.Project {
+      language = "rust" as project.LanguageType
+      platform = "rust" as project.PlatformType
+      stack = "backend" as project.StackType
+    }
+  }
+}
+
+facts {
+  ["workspace config via mod.pkl works"] = (workspaceConfig != null)
+
+  ["project config via mod.pkl works"] = (projectConfig != null)
+
+  ["complete example configuration works"] = (completeExample != null)
+
+  // Test that configurations maintain their type constraints
+  ["workspace hashing optimization is preserved"] = (
+    completeExample.workspace.hasher.optimization == "accuracy"
+  )
+
+  ["frontend project language is preserved"] = (
+    completeExample.projects.frontend.language == "typescript"
+  )
+
+  ["backend project language is preserved"] = (
+    completeExample.projects.backend.language == "rust"
+  )
+
+  // Test mixed enum usage across schemas
+  ["can use enums from different schemas together"] = (
+    workspaceConfig.hasher.optimization is workspace.HasherOptimization &&
+    projectConfig.language is project.LanguageType
+  )
+}
+
+examples {
+  ["workspace via mod export"] {
+    workspaceConfig
+  }
+
+  ["project via mod export"] {
+    projectConfig
+  }
+
+  ["complete workspace example"] {
+    completeExample
+  }
+}

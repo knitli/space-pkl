@@ -1,0 +1,22 @@
+/// Moon Configuration Schemas Module Index
+///
+/// This module provides access to all Moon configuration schemas.
+
+module moon
+
+import "workspace.pkl"
+import "project.pkl"
+import "template.pkl"
+import "toolchain.pkl"
+import "tasks.pkl"
+
+/// Workspace configuration schema
+typealias Workspace = workspace.WorkspaceConfig
+/// Project configuration schema
+typealias Project = project.ProjectConfig
+/// Template configuration schema
+typealias Template = template.TemplateConfig
+/// Toolchain configuration schema
+typealias Toolchain = toolchain.ToolchainConfig
+/// Tasks configuration schema
+typealias Tasks = tasks.TasksConfig

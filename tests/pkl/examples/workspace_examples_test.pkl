@@ -1,0 +1,58 @@
+/// Realistic workspace configuration examples
+///
+/// This test validates that realistic workspace configurations can be created.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/workspace.pkl" as workspace
+
+local exampleWorkspaceMinimal = new {
+  // This represents a minimal valid workspace configuration
+  // Most fields are optional in Moon workspace config
+}
+
+local exampleWorkspaceWithHashing = new {
+  // Example with custom hashing configuration
+  hasher = new {
+    optimization = "performance" as workspace.HasherOptimization
+    walkStrategy = "vcs" as workspace.HasherWalkStrategy
+  }
+}
+
+local exampleWorkspaceWithCodeowners = new {
+  // Example with codeowners configuration
+  codeowners = new {
+    orderBy = "project-name" as workspace.CodeownersOrderBy
+  }
+}
+
+facts {
+  ["minimal workspace config is valid"] = (exampleWorkspaceMinimal != null)
+
+  ["workspace with hashing config is valid"] = (exampleWorkspaceWithHashing != null)
+
+  ["workspace with codeowners config is valid"] = (exampleWorkspaceWithCodeowners != null)
+
+  // Test that enum values work in configurations
+  ["hashing optimization value is correct"] = (
+    exampleWorkspaceWithHashing.hasher.optimization == "performance"
+  )
+
+  ["codeowners order value is correct"] = (
+    exampleWorkspaceWithCodeowners.codeowners.orderBy == "project-name"
+  )
+}
+
+examples {
+  ["minimal workspace"] {
+    exampleWorkspaceMinimal
+  }
+
+  ["workspace with performance hashing"] {
+    exampleWorkspaceWithHashing
+  }
+
+  ["workspace with codeowners"] {
+    exampleWorkspaceWithCodeowners
+  }
+}

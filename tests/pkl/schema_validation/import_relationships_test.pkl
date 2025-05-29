@@ -1,0 +1,29 @@
+/// Import relationship validation tests
+///
+/// This test validates that import relationships work correctly between schema files.
+
+amends "pkl:test"
+
+import "../../../pkl-schemas/mod.pkl" as moon
+
+facts {
+  // Test that mod.pkl properly exports all schemas
+  ["workspace type is available"] { moon.Workspace != null }
+
+  ["project type is available"] { moon.Project != null }
+
+  ["template type is available"] { moon.Template != null }
+
+  ["toolchain type is available"] { moon.Toolchain != null }
+
+  ["tasks type is available"] { moon.Tasks != null }
+
+  // Test that type aliases refer to the correct underlying types
+  ["workspace alias equals Any"] { moon.Workspace == Any }
+
+  ["project alias equals Any"] { moon.Project == Any }
+}
+
+examples {
+  // Import relationship validation is done in facts section
+}

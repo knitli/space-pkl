@@ -28,7 +28,7 @@ fn main() -> space_pkl::Result<()> {
         header: Some(
             r#"// Custom Moon Configuration Schema
 // Generated for MyProject
-// 
+//
 
 "#.to_string()
         ),
@@ -41,10 +41,10 @@ fn main() -> space_pkl::Result<()> {
 
     // Example 4: Generate individual schemas
     println!("\n4. Generating individual schemas...");
-    
+
     let project_schema = generator.generate_project_schema()?;
     println!("   📋 Project schema: {} chars", project_schema.len());
-    
+
     let toolchain_schema = generator.generate_toolchain_schema()?;
     println!("   🔧 Toolchain schema: {} chars", toolchain_schema.len());
 
@@ -54,4 +54,7 @@ fn main() -> space_pkl::Result<()> {
     for (i, line) in workspace_schema.lines().take(20).enumerate() {
         println!("   {:2} | {}", i + 1, line);
     }
-    println
+    println!("   {}", "-".repeat(50));
+
+    Ok(())
+}

@@ -1,33 +1,37 @@
 //! # space-pkl
-//! 
+//!
 //! Pkl schema and template generation for Moon workspace configurations.
-//! 
+//!
 //! This crate provides utilities to generate Pkl schemas and templates from Moon's
 //! configuration types, enabling type-safe configuration authoring in Pkl format.
-//! 
+//!
 //! ## Features
-//! 
+//!
 //! - Generate Pkl schemas from Moon configuration types
 //! - Create Pkl templates with examples and documentation
 //! - CLI tool for easy schema generation
 //! - Programmatic API for integration
-//! 
+//!
 //! ## Quick Start
-//! 
+//!
 //! ```rust
 //! use space_pkl::generator::SchemaGenerator;
 //! use space_pkl::config::GeneratorConfig;
-//! 
+//!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = GeneratorConfig::default();
 //! let generator = SchemaGenerator::new(config);
-//! 
+//!
 //! // Generate workspace schema
 //! let workspace_schema = generator.generate_workspace_schema()?;
 //! println!("{}", workspace_schema);
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! (c) 2025 Stash AI Inc (knitli)
+//!   - Created by Adam Poulemanos ([@bashandbone](https://github.com/bashandbone))
+//! Licensed under the [Plain MIT License](https://plainlicense.org/licenses/permissive/mit/)
 
 pub mod config;
 pub mod generator;

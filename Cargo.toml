@@ -1,12 +1,12 @@
 [package]
-name = "space_pkl"
+name = "space-pkl"
 version = "0.1.0"
 edition = "2021"
 description = "Pkl schema and template generation for Moon workspace configurations"
 license = "MIT"
 repository = "https://github.com/knitli/space-pkl"
 homepage = "https://github.com/knitli/space-pkl"
-documentation = "https://docs.rs/space_pkl"
+documentation = "https://docs.rs/space-pkl"
 readme = "README.md"
 keywords = ["pkl", "moon", "schema", "configuration", "template"]
 categories = ["development-tools", "template-engine"]
@@ -19,34 +19,45 @@ path = "src/main.rs"
 [dependencies]
 # Core dependencies
 clap = { version = "4.4", features = ["derive", "color"], optional = true }
-miette = { version = "7.0", features = ["fancy"] }
+miette = { version = "7.6", features = ["fancy"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
+tracing-subscriber = { version = "0.3", features = [
+  "env-filter",
+], optional = true }
 
 # Moon configuration (we'll depend on moon's config crate)
-moon_config = { version = "0.1.4", features = ["proto", "loader", "template", "tracing"]}
+moon_config = { version = "0.1.4", features = [
+  "proto",
+  "loader",
+  "template",
+  "tracing",
+] }
 schematic = { version = "0.18.5", features = [
-    "config",
-	"env",
-	"extends",
-	"json",
-	"pkl",
-	"schema",
-	"type_indexmap",
-	"type_semver",
-	"validate",
-	"validate_url",
-	"yml"] }
+  "config",
+  "env",
+  "extends",
+  "json",
+  "pkl",
+  "schema",
+  "type_indexmap",
+  "type_semver",
+  "validate",
+  "validate_url",
+  "yml",
+] }
 
 # File system and path handling
 walkdir = "2.4"
 globset = "0.4"
 
+# Schema types
+schematic_types = "0.10.2"
+
 # Template engine
-handlebars = "5.1"
+handlebars = "6.3.2"
 indexmap = "2.0"
 
 # Optional: for better error reporting
@@ -56,6 +67,7 @@ color-eyre = { version = "0.6", optional = true }
 tempfile = "3.8"
 assert_fs = "1.0"
 predicates = "3.0"
+serde_json = "1.0"
 
 [features]
 default = ["cli"]
