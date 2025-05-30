@@ -76,6 +76,9 @@ pub struct PklType {
 
     /// For enums/typealias, the union values
     pub enum_values: Option<String>,
+
+    /// Whether this type is deprecated
+    pub deprecated: Option<String>,
 }
 
 /// Kinds of Pkl types
@@ -115,6 +118,9 @@ pub struct PklProperty {
 
     /// Example values
     pub examples: Vec<String>,
+
+    /// Whether the property is deprecated
+    pub deprecated: Option<String>,
 }
 
 /// Represents a validation constraint

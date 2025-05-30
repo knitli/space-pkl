@@ -23,6 +23,9 @@ pub struct GeneratorConfig {
     /// Whether to include validation constraints
     pub include_validation: bool,
 
+    /// Whether to include deprecated fields/types (default: false)
+    pub include_deprecated: bool,
+
     /// Custom header to prepend to generated files
     pub header: Option<String>,
 
@@ -51,6 +54,7 @@ impl Default for GeneratorConfig {
             include_comments: true,
             include_examples: true,
             include_validation: true,
+            include_deprecated: false,
             header: Some(default_header()),
             footer: None,
             output_dir: PathBuf::from("./pkl-schemas"),

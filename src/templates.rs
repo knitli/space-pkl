@@ -158,6 +158,9 @@ impl TemplateEngine {
 
         // Helper for escaping pkl keywords
         handlebars.register_helper("escape_pkl_keyword", Box::new(escape_pkl_keyword_helper));
+
+        // Helper for rendering deprecation decorators
+        handlebars.register_helper("deprecated", Box::new(deprecated_helper));
     }
 }
 
@@ -210,6 +213,9 @@ typealias {{name}} = {{name}}Module.{{main_class}}
 const CLASS_TEMPLATE: &str = r#"{{#if documentation}}
 {{doc documentation}}
 {{/if}}
+{{#if deprecated}}
+{{deprecated deprecated}}
+{{/if}}
 {{#if (is_typealias kind)}}typealias {{name}} = {{#if enum_values}}{{enum_values}}{{else}}Any{{/if}}{{else}}{{#if abstract_type}}abstract {{/if}}class {{name}}{{#if extends}} extends {{#each extends}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} {
 {{#each properties}}
 {{> property this}}
@@ -219,6 +225,9 @@ const CLASS_TEMPLATE: &str = r#"{{#if documentation}}
 
 const PROPERTY_TEMPLATE: &str = r#"{{#if documentation}}
 {{doc documentation}}
+{{/if}}
+{{#if deprecated}}
+{{deprecated deprecated}}
 {{/if}}
 {{#if examples}}
   ///
@@ -447,6 +456,24 @@ fn escape_pkl_keyword_helper(
                 out.write(&format!("`{}`", value))?;
             } else {
                 out.write(value)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn deprecated_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    if let Some(param) = h.param(0) {
+        if let Some(message) = param.value().as_str() {
+            // Only render deprecation if there's a message
+            if !message.trim().is_empty() {
+                out.write("@Deprecated\n")?;
             }
         }
     }

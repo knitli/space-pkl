@@ -77,6 +77,10 @@ enum Commands {
         #[arg(long)]
         no_examples: bool,
 
+        /// Include deprecated fields/types in generated schemas
+        #[arg(long)]
+        include_deprecated: bool,
+
         /// Custom header for generated files
         #[arg(long)]
         header: Option<String>,
@@ -164,6 +168,7 @@ async fn main() -> Result<()> {
             overwrite,
             no_comments,
             no_examples,
+            include_deprecated,
             header,
             footer,
             module_name,
@@ -172,6 +177,7 @@ async fn main() -> Result<()> {
             let config = GeneratorConfig {
                 include_comments: !no_comments,
                 include_examples: !no_examples,
+                include_deprecated,
                 header: header.or_else(|| Some(default_header())),
                 footer,
                 output_dir: output.clone(),
