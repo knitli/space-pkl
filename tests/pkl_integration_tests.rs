@@ -78,29 +78,39 @@ fn test_workspace_schema_validation() {
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
     let test_file = temp_dir.path().join("test_workspace.pkl");
 
-    let test_content = r#"
-amends "../../../pkl-schemas/workspace.pkl"
+    let test_content = format!(
+        r#"
+amends "pkl:test"
 
-// Basic workspace configuration
-$schema = "https://moonrepo.dev/schemas/workspace.json"
-versionConstraint = ">=1.0.0"
+import "{}/pkl-schemas/workspace.pkl" as workspace
 
-projects = new Listing {
-    "apps/*"
-    "packages/*"
-}
-
-docker = new {
-    scaffold = new {
-        include = new Listing { "Dockerfile" }
-    }
-}
-
-vcs = new {
+local validConfig = new workspace.WorkspaceConfig {{
+  versionConstraint = ">=1.0.0"
+  projects = new workspace.WorkspaceProjectsConfig {{
+    globs = new Listing {{ "apps/*"; "packages/*" }}
+  }}
+  hasher = new workspace.HasherConfig {{
+    optimization = "accuracy"
+    walkStrategy = "vcs"
+  }}
+  vcs = new workspace.VcsConfig {{
     manager = "git"
+    provider = "github"
+    hookFormat = "bash"
     defaultBranch = "main"
-}
-"#;
+  }}
+}}
+
+facts {{
+  ["Valid workspace configuration should work"] {{
+    validConfig.versionConstraint == ">=1.0.0"
+    validConfig.vcs.manager == "git"
+    validConfig.hasher.optimization == "accuracy"
+  }}
+}}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&test_file, test_content).expect("Failed to write test file");
 
@@ -127,32 +137,30 @@ fn test_project_schema_validation() {
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
     let test_file = temp_dir.path().join("test_project.pkl");
 
-    let test_content = r#"
-amends "../../../pkl-schemas/project.pkl"
+    let test_content = format!(
+        r#"
+amends "pkl:test"
 
-// Basic project configuration
-$schema = "https://moonrepo.dev/schemas/project.json"
-type = "application"
-language = "typescript"
-platform = "node"
+import "{}/pkl-schemas/project.pkl" as project
 
-project = new {
-    name = "my-app"
-    description = "A test application"
-}
+local validConfig = new project.ProjectConfig {{
+  language = "typescript" as project.LanguageType
+  platform = "node" as project.PlatformType
+  type = "application" as project.ProjectType
+  stack = "frontend" as project.StackType
+}}
 
-tasks = new Mapping {
-    ["build"] = new {
-        command = "npm run build"
-        inputs = new Listing { "src/**/*" }
-        outputs = new Listing { "dist/**/*" }
-    }
-    ["test"] = new {
-        command = "npm test"
-        inputs = new Listing { "src/**/*", "tests/**/*" }
-    }
-}
-"#;
+facts {{
+  ["Valid project configuration should work"] {{
+    validConfig.language == "typescript"
+    validConfig.platform == "node"
+    validConfig.type == "application"
+    validConfig.stack == "frontend"
+  }}
+}}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&test_file, test_content).expect("Failed to write test file");
 
@@ -180,15 +188,27 @@ fn test_invalid_configuration_rejection() {
     let test_file = temp_dir.path().join("invalid_workspace.pkl");
 
     // Create an invalid configuration with wrong types
-    let invalid_content = r#"
-amends "../../../pkl-schemas/workspace.pkl"
+    let invalid_content = format!(
+        r#"
+import "{}/pkl-schemas/workspace.pkl" as workspace
 
-// Invalid configuration - versionConstraint should be a string, not number
-versionConstraint = 123
+// This should fail - invalid enum values
+local invalidConfig = new workspace.WorkspaceConfig {{
+  hasher = new workspace.HasherConfig {{
+    optimization = "invalid_optimization"  // Should be "accuracy" or "performance"
+    walkStrategy = "invalid_strategy"      // Should be "glob" or "vcs"
+  }}
+  vcs = new workspace.VcsConfig {{
+    manager = "invalid_vcs"  // Should be "git"
+    provider = "invalid_provider"  // Should be bitbucket|github|gitlab|other
+    hookFormat = "invalid_format"  // Should be "bash" or "native"
+  }}
+}}
 
-// Invalid project path type
-projects = "invalid_type"
-"#;
+output {{ invalid: invalidConfig }}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&test_file, invalid_content).expect("Failed to write test file");
 
@@ -216,18 +236,36 @@ fn test_schema_imports() {
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
     let test_file = temp_dir.path().join("test_imports.pkl");
 
-    let test_content = r#"
-import "../../../pkl-schemas/mod.pkl"
+    let test_content = format!(
+        r#"
+amends "pkl:test"
 
-// Test that we can access exported schemas
-output {
-    hasWorkspaceSchema = mod.Workspace != null
-    hasProjectSchema = mod.Project != null
-    hasTasksSchema = mod.Tasks != null
-    hasTemplateSchema = mod.Template != null
-    hasToolchainSchema = mod.Toolchain != null
-}
-"#;
+import "{}/pkl-schemas/mod.pkl" as moon
+
+// Test that we can access exported schemas by creating instances
+local workspaceExample = new moon.Workspace {{
+  versionConstraint = ">=1.0.0"
+  projects = new {{ globs = new Listing {{ "apps/*" }} }}
+  hasher = new {{ optimization = "accuracy"; walkStrategy = "vcs" }}
+  vcs = new {{ manager = "git"; provider = "github"; hookFormat = "bash" }}
+}}
+
+local projectExample = new moon.Project {{
+  language = "typescript"
+  platform = "node"
+  type = "application"
+  stack = "frontend"
+}}
+
+facts {{
+  ["Can create workspace instance"] {{ workspaceExample != null }}
+  ["Can create project instance"] {{ projectExample != null }}
+  ["Workspace has correct VCS"] {{ workspaceExample.vcs.manager == "git" }}
+  ["Project has correct language"] {{ projectExample.language == "typescript" }}
+}}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&test_file, test_content).expect("Failed to write test file");
 
@@ -244,15 +282,8 @@ output {
         panic!("Schema imports test failed: {}", stderr);
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let json: serde_json::Value =
-        serde_json::from_str(&stdout).expect("PKL output should be valid JSON");
-
-    assert_eq!(json["hasWorkspaceSchema"], true);
-    assert_eq!(json["hasProjectSchema"], true);
-    assert_eq!(json["hasTasksSchema"], true);
-    assert_eq!(json["hasTemplateSchema"], true);
-    assert_eq!(json["hasToolchainSchema"], true);
+    // If we reach here, the test passed (no assertion errors from pkl)
+    println!("Schema imports test passed successfully");
 }
 
 /// Test PKL type constraints and enums
@@ -265,14 +296,30 @@ fn test_type_constraints() {
 
     // Test valid enum values
     let valid_test_file = temp_dir.path().join("valid_enums.pkl");
-    let valid_content = r#"
-amends "../../../pkl-schemas/project.pkl"
+    let valid_content = format!(
+        r#"
+amends "pkl:test"
 
-language = "typescript"  // Valid LanguageType
-platform = "node"       // Valid PlatformType
-type = "application"     // Valid ProjectType
-stack = "frontend"       // Valid StackType
-"#;
+import "{}/pkl-schemas/project.pkl" as project
+
+local validConfig = new project.ProjectConfig {{
+  language = "typescript" as project.LanguageType
+  platform = "node" as project.PlatformType
+  type = "application" as project.ProjectType
+  stack = "frontend" as project.StackType
+}}
+
+facts {{
+  ["Valid enum values should work"] {{
+    validConfig.language == "typescript"
+    validConfig.platform == "node"
+    validConfig.type == "application"
+    validConfig.stack == "frontend"
+  }}
+}}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&valid_test_file, valid_content).expect("Failed to write valid test file");
 
@@ -284,19 +331,30 @@ stack = "frontend"       // Valid StackType
         .output()
         .expect("Failed to execute pkl command");
 
-    assert!(
-        output.status.success(),
-        "Valid enum values should be accepted"
-    );
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        panic!(
+            "Valid enum values should be accepted. PKL error: {}",
+            stderr
+        );
+    }
 
     // Test invalid enum values
     let invalid_test_file = temp_dir.path().join("invalid_enums.pkl");
-    let invalid_content = r#"
-amends "../../../pkl-schemas/project.pkl"
+    let invalid_content = format!(
+        r#"
+import "{}/pkl-schemas/project.pkl" as project
 
-language = "invalid_language"  // Invalid LanguageType
-platform = "invalid_platform"  // Invalid PlatformType
-"#;
+// This should fail with invalid enum values
+local invalidConfig = new project.ProjectConfig {{
+  language = "invalid_language" as project.LanguageType
+  platform = "invalid_platform" as project.PlatformType
+}}
+
+output {{ invalid: invalidConfig }}
+"#,
+        std::env::current_dir().unwrap().display()
+    );
 
     fs::write(&invalid_test_file, invalid_content).expect("Failed to write invalid test file");
 

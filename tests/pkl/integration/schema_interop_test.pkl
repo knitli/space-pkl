@@ -10,12 +10,21 @@ import "../../../pkl-schemas/project.pkl" as project
 
 // Test creating configurations using the main module exports
 local workspaceConfig = new moon.Workspace {
-  hasher = new {
+  hasher = new workspace.HasherConfig {
     optimization = "accuracy" as workspace.HasherOptimization
   }
-  codeowners = new {
+  codeowners = new workspace.CodeownersConfig {
     orderBy = "file-source" as workspace.CodeownersOrderBy
   }
+  constraints = new workspace.ConstraintsConfig {}
+  docker = new workspace.DockerConfig {}
+  experiments = new workspace.ExperimentsConfig {}
+  generator = new workspace.GeneratorConfig {}
+  notifier = new workspace.NotifierConfig {}
+  pipeline = new workspace.PipelineConfig {}
+  projects = new workspace.WorkspaceProjectsConfig {}
+  unstable_remote = new workspace.RemoteConfig {}
+  vcs = new workspace.VcsConfig {}
 }
 
 local projectConfig = new moon.Project {
@@ -38,42 +47,42 @@ local completeExample = new {
 }
 
 facts {
-  ["workspace config via mod.pkl works"] = (workspaceConfig != null)
+  ["workspace config via mod.pkl works"] { workspaceConfig != null }
 
-  ["project config via mod.pkl works"] = (projectConfig != null)
+  ["project config via mod.pkl works"] { projectConfig != null }
 
-  ["complete example configuration works"] = (completeExample != null)
+  ["complete example configuration works"] { completeExample != null }
 
   // Test that configurations maintain their type constraints
-  ["workspace hashing optimization is preserved"] = (
+  ["workspace hashing optimization is preserved"] {
     completeExample.workspace.hasher.optimization == "accuracy"
-  )
+  }
 
-  ["frontend project language is preserved"] = (
+  ["frontend project language is preserved"] {
     completeExample.projects.frontend.language == "typescript"
-  )
+  }
 
-  ["backend project language is preserved"] = (
+  ["backend project language is preserved"] {
     completeExample.projects.backend.language == "rust"
-  )
+  }
 
   // Test mixed enum usage across schemas
-  ["can use enums from different schemas together"] = (
+  ["can use enums from different schemas together"] {
     workspaceConfig.hasher.optimization is workspace.HasherOptimization &&
     projectConfig.language is project.LanguageType
-  )
+  }
 }
 
 examples {
-  ["workspace via mod export"] {
-    workspaceConfig
+  ["workspace hasher optimization"] {
+    workspaceConfig.hasher.optimization
   }
 
-  ["project via mod export"] {
-    projectConfig
+  ["project language"] {
+    projectConfig.language
   }
 
-  ["complete workspace example"] {
-    completeExample
+  ["complete workspace structure"] {
+    completeExample.workspace.hasher.optimization
   }
 }

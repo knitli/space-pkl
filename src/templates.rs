@@ -100,11 +100,11 @@ impl TemplateEngine {
             "module_name": config.module_name,
             "config": config,
             "schemas": [
-                {"name": "Workspace", "file": "workspace.pkl"},
-                {"name": "Project", "file": "project.pkl"},
-                {"name": "Template", "file": "template.pkl"},
-                {"name": "Toolchain", "file": "toolchain.pkl"},
-                {"name": "Tasks", "file": "tasks.pkl"},
+                {"name": "Workspace", "file": "workspace.pkl", "main_class": "WorkspaceConfig"},
+                {"name": "Project", "file": "project.pkl", "main_class": "ProjectConfig"},
+                {"name": "Template", "file": "template.pkl", "main_class": "TemplateConfig"},
+                {"name": "Toolchain", "file": "toolchain.pkl", "main_class": "ToolchainConfig"},
+                {"name": "Tasks", "file": "tasks.pkl", "main_class": "InheritedTasksConfig"},
             ]
         });
 
@@ -155,6 +155,9 @@ impl TemplateEngine {
 
         // Helper for type alias check
         handlebars.register_helper("is_typealias", Box::new(is_typealias_helper));
+
+        // Helper for escaping pkl keywords
+        handlebars.register_helper("escape_pkl_keyword", Box::new(escape_pkl_keyword_helper));
     }
 }
 
@@ -196,18 +199,18 @@ const INDEX_TEMPLATE: &str = r#"/// Moon Configuration Schemas Module Index
 module {{module_name}}
 
 {{#each schemas}}
-import "{{file}}"
+import "{{file}}" as {{name}}Module
 {{/each}}
 
 {{#each schemas}}
 /// {{name}} configuration schema
-typealias {{name}} = {{file}}.{{name}}
+typealias {{name}} = {{name}}Module.{{main_class}}
 {{/each}}"#;
 
 const CLASS_TEMPLATE: &str = r#"{{#if documentation}}
-{{doc documentation}}{{/if}}
-{{~#if (is_typealias kind)}}typealias {{name}} = {{#if enum_values}}{{enum_values}}
-{{else}}Any{{/if}}{{else}}{{#if abstract_type}}abstract {{/if}}class {{name}}{{#if extends}} extends {{#each extends}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} {
+{{doc documentation}}
+{{/if}}
+{{#if (is_typealias kind)}}typealias {{name}} = {{#if enum_values}}{{enum_values}}{{else}}Any{{/if}}{{else}}{{#if abstract_type}}abstract {{/if}}class {{name}}{{#if extends}} extends {{#each extends}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} {
 {{#each properties}}
 {{> property this}}
 {{/each}}
@@ -224,8 +227,7 @@ const PROPERTY_TEMPLATE: &str = r#"{{#if documentation}}
   /// - `{{this}}`
 {{/each}}
 {{/if}}
-  {{#if optional}}{{name}}: ({{{type_name}}})?{{else}}{{name}}: {{{type_name}}}{{/if}}{{#if default}} = {{default}}
-  {{/if}}
+  {{escape_pkl_keyword name}}: {{type_name}}{{#if optional}}?{{/if}}{{#if default}} = {{default}}{{/if}}
 "#;
 
 // Helper functions
@@ -325,8 +327,21 @@ fn doc_helper(
 ) -> HelperResult {
     if let Some(param) = h.param(0) {
         if let Some(value) = param.value().as_str() {
-            for line in value.lines() {
-                out.write(&format!("/// {}\n", line.trim()))?;
+            // Split into lines and properly format each line
+            let lines: Vec<&str> = value.lines().collect();
+
+            for (i, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                if !trimmed.is_empty() {
+                    out.write(&format!("  /// {}", trimmed))?;
+                } else {
+                    out.write("  ///")?;
+                }
+
+                // Add newline except for the last line
+                if i < lines.len() - 1 {
+                    out.write("\n")?;
+                }
             }
         }
     }
@@ -378,5 +393,62 @@ fn is_typealias_helper(
         out.write("")?;
     }
 
+    Ok(())
+}
+
+fn escape_pkl_keyword_helper(
+    h: &Helper,
+    _: &Handlebars,
+    _: &Context,
+    _: &mut RenderContext,
+    out: &mut dyn Output,
+) -> HelperResult {
+    if let Some(param) = h.param(0) {
+        if let Some(value) = param.value().as_str() {
+            // List of pkl reserved keywords that need to be escaped
+            let pkl_keywords = [
+                "abstract",
+                "amends",
+                "as",
+                "class",
+                "const",
+                "default",
+                "extends",
+                "external",
+                "false",
+                "for",
+                "function",
+                "hidden",
+                "if",
+                "import",
+                "in",
+                "let",
+                "local",
+                "module",
+                "new",
+                "nothing",
+                "null",
+                "open",
+                "out",
+                "read",
+                "super",
+                "this",
+                "throw",
+                "trace",
+                "true",
+                "typealias",
+                "unknown",
+                "when",
+                "import*",
+            ];
+
+            if pkl_keywords.contains(&value) {
+                // Escape with backticks
+                out.write(&format!("`{}`", value))?;
+            } else {
+                out.write(value)?;
+            }
+        }
+    }
     Ok(())
 }

@@ -1,0 +1,40 @@
+examples {
+  ["typescript frontend project"] {
+    new {
+      language = "typescript"
+      platform = "node"
+      stack = "frontend"
+    }
+  }
+  ["rust backend project"] {
+    new {
+      language = "rust"
+      platform = "rust"
+      stack = "backend"
+    }
+  }
+  ["python project"] {
+    new {
+      language = "python"
+      platform = "python"
+      stack = "backend"
+    }
+  }
+  ["project with dependencies"] {
+    new {
+      language = "javascript"
+      platform = "node"
+      stack = "frontend"
+      dependsOn {
+        api {
+          scope = "production"
+          source = "explicit"
+        }
+        testUtils {
+          scope = "development"
+          source = "implicit"
+        }
+      }
+    }
+  }
+}

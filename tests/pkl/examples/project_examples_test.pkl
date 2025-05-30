@@ -45,33 +45,33 @@ local exampleProjectWithDependencies = new {
 }
 
 facts {
-  ["typescript project is valid"] = (exampleTypeScriptProject != null)
+  ["typescript project is valid"] { exampleTypeScriptProject != null }
 
-  ["rust project is valid"] = (exampleRustProject != null)
+  ["rust project is valid"] { exampleRustProject != null }
 
-  ["python project is valid"] = (examplePythonProject != null)
+  ["python project is valid"] { examplePythonProject != null }
 
-  ["project with dependencies is valid"] = (exampleProjectWithDependencies != null)
+  ["project with dependencies is valid"] { exampleProjectWithDependencies != null }
 
   // Test that enum combinations work correctly
-  ["typescript uses node platform"] = (
+  ["typescript uses node platform"] {
     exampleTypeScriptProject.language == "typescript" &&
     exampleTypeScriptProject.platform == "node"
-  )
+  }
 
-  ["rust uses rust platform"] = (
+  ["rust uses rust platform"] {
     exampleRustProject.language == "rust" &&
     exampleRustProject.platform == "rust"
-  )
+  }
 
   // Test dependency configuration
-  ["production dependency is configured correctly"] = (
+  ["production dependency is configured correctly"] {
     exampleProjectWithDependencies.dependsOn.api.scope == "production"
-  )
+  }
 
-  ["development dependency is configured correctly"] = (
+  ["development dependency is configured correctly"] {
     exampleProjectWithDependencies.dependsOn.testUtils.scope == "development"
-  )
+  }
 }
 
 examples {

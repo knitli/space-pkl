@@ -1,0 +1,20 @@
+examples {
+  ["minimal workspace"] {
+    new {}
+  }
+  ["workspace with performance hashing"] {
+    new {
+      hasher {
+        optimization = "performance"
+        walkStrategy = "vcs"
+      }
+    }
+  }
+  ["workspace with codeowners"] {
+    new {
+      codeowners {
+        orderBy = "project-name"
+      }
+    }
+  }
+}

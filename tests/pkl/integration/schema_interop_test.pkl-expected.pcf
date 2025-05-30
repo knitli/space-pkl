@@ -1,0 +1,11 @@
+examples {
+  ["workspace hasher optimization"] {
+    "accuracy"
+  }
+  ["project language"] {
+    "typescript"
+  }
+  ["complete workspace structure"] {
+    "accuracy"
+  }
+}

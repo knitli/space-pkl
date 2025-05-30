@@ -27,20 +27,20 @@ local exampleWorkspaceWithCodeowners = new {
 }
 
 facts {
-  ["minimal workspace config is valid"] = (exampleWorkspaceMinimal != null)
+  ["minimal workspace config is valid"] { exampleWorkspaceMinimal != null }
 
-  ["workspace with hashing config is valid"] = (exampleWorkspaceWithHashing != null)
+  ["workspace with hashing config is valid"] { exampleWorkspaceWithHashing != null }
 
-  ["workspace with codeowners config is valid"] = (exampleWorkspaceWithCodeowners != null)
+  ["workspace with codeowners config is valid"] { exampleWorkspaceWithCodeowners != null }
 
   // Test that enum values work in configurations
-  ["hashing optimization value is correct"] = (
+  ["hashing optimization value is correct"] {
     exampleWorkspaceWithHashing.hasher.optimization == "performance"
-  )
+  }
 
-  ["codeowners order value is correct"] = (
+  ["codeowners order value is correct"] {
     exampleWorkspaceWithCodeowners.codeowners.orderBy == "project-name"
-  )
+  }
 }
 
 examples {

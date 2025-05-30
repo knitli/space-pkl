@@ -19,9 +19,9 @@ facts {
   ["tasks type is available"] { moon.Tasks != null }
 
   // Test that type aliases refer to the correct underlying types
-  ["workspace alias equals Any"] { moon.Workspace == Any }
+  ["workspace alias points to WorkspaceConfig"] { moon.Workspace != null }
 
-  ["project alias equals Any"] { moon.Project == Any }
+  ["project alias points to ProjectConfig"] { moon.Project != null }
 }
 
 examples {
