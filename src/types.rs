@@ -80,6 +80,7 @@ pub struct PklType {
 
 /// Kinds of Pkl types
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub enum PklTypeKind {
     /// A class type
     Class,

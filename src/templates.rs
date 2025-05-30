@@ -12,6 +12,7 @@ use handlebars::{Context, Handlebars, Helper, HelperResult, Output, RenderContex
 use miette::{IntoDiagnostic, WrapErr};
 use serde_json::json;
 use std::collections::HashMap;
+use tracing::debug;
 
 /// Template engine for rendering Pkl schemas
 pub struct TemplateEngine {
@@ -60,6 +61,27 @@ impl TemplateEngine {
 
     /// Render a Pkl module
     pub fn render_module(&self, module: &PklModule, config: &GeneratorConfig) -> Result<String> {
+        // Debug logging to see what types we're rendering
+        for pkl_type in &module.types {
+            debug!(
+                "Rendering type '{}': kind={:?}, properties={}, enum_values={:?}",
+                pkl_type.name,
+                pkl_type.kind,
+                pkl_type.properties.len(),
+                pkl_type.enum_values
+            );
+
+            // Serialize the type to see how it looks in JSON
+            if let Ok(serialized) = serde_json::to_string(pkl_type) {
+                debug!("Serialized PklType '{}': {}", pkl_type.name, serialized);
+            }
+
+            // Test individual template rendering
+            if let Ok(rendered) = self.handlebars.render("class", pkl_type) {
+                debug!("Rendered class '{}': {}", pkl_type.name, rendered);
+            }
+        }
+
         let context = TemplateContext {
             module: module.clone(),
             config: config.clone(),
@@ -131,18 +153,18 @@ impl TemplateEngine {
         // Helper for rendering optional types
         handlebars.register_helper("optional", Box::new(optional_helper));
 
-        // Helper for equality comparison
-        handlebars.register_helper("eq", Box::new(eq_helper));
+        // Helper for type alias check
+        handlebars.register_helper("is_typealias", Box::new(is_typealias_helper));
     }
 }
 
 // Template constants
 const MODULE_TEMPLATE: &str = r#"{{#if config.header}}{{config.header}}{{/if}}
 
-{{#if module.documentation}}
+{{~#if module.documentation}}
 /// {{module.documentation}}
 {{/if}}
-{{#if config.include_examples}}
+{{~#if config.include_examples}}
 ///
 /// ## Example
 ///
@@ -150,7 +172,7 @@ const MODULE_TEMPLATE: &str = r#"{{#if config.header}}{{config.header}}{{/if}}
 /// import "{{module.name}}.pkl"
 ///
 /// config: {{module.name}} = new {
-///   // Add your configuration here
+/// // Add your configuration here
 /// }
 /// ```
 {{/if}}
@@ -184,14 +206,17 @@ typealias {{name}} = {{file}}.{{name}}
 
 const CLASS_TEMPLATE: &str = r#"{{#if documentation}}
 {{doc documentation}}{{/if}}
-{{#if (eq kind "TypeAlias")}}typealias {{name}} = {{#if enum_values}}{{enum_values}}{{else}}Any{{/if}}{{else}}{{#if abstract_type}}abstract {{/if}}class {{name}}{{#if extends}} extends {{#each extends}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} {
+{{~#if (is_typealias kind)}}typealias {{name}} = {{#if enum_values}}{{enum_values}}
+{{else}}Any{{/if}}{{else}}{{#if abstract_type}}abstract {{/if}}class {{name}}{{#if extends}} extends {{#each extends}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}} {
 {{#each properties}}
 {{> property this}}
 {{/each}}
-}{{/if}}"#;
+}
+{{/if}}"#;
 
 const PROPERTY_TEMPLATE: &str = r#"{{#if documentation}}
-{{doc documentation}}{{/if}}
+{{doc documentation}}
+{{/if}}
 {{#if examples}}
   ///
   /// Examples:
@@ -199,7 +224,9 @@ const PROPERTY_TEMPLATE: &str = r#"{{#if documentation}}
   /// - `{{this}}`
 {{/each}}
 {{/if}}
-  {{#if optional}}{{name}}: ({{{type_name}}})?{{else}}{{name}}: {{{type_name}}}{{/if}}{{#if default}} = {{default}}{{/if}}"#;
+  {{#if optional}}{{name}}: ({{{type_name}}})?{{else}}{{name}}: {{{type_name}}}{{/if}}{{#if default}} = {{default}}
+  {{/if}}
+"#;
 
 // Helper functions
 fn capitalize_helper(
@@ -321,21 +348,35 @@ fn optional_helper(
     Ok(())
 }
 
-fn eq_helper(
+fn is_typealias_helper(
     h: &Helper,
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
     out: &mut dyn Output,
 ) -> HelperResult {
-    if let (Some(param1), Some(param2)) = (h.param(0), h.param(1)) {
-        let val1 = param1.value().as_str().unwrap_or("");
-        let val2 = param2.value().as_str().unwrap_or("");
-        if val1 == val2 {
-            out.write("true")?;
-        } else {
-            out.write("false")?;
-        }
+    // Get the 'kind' value from the current context
+    let is_typealias = if let Some(kind_param) = h.param(0) {
+        let kind_value = match kind_param.value() {
+            serde_json::Value::String(s) => s.clone(),
+            other => other.to_string().trim_matches('"').to_string(),
+        };
+
+        tracing::debug!("is_typealias_helper: checking kind = '{}'", kind_value);
+
+        kind_value == "TypeAlias"
+    } else {
+        false
+    };
+
+    tracing::debug!("is_typealias_helper: result = {}", is_typealias);
+
+    // Return empty string for false (falsy), non-empty for true (truthy)
+    if is_typealias {
+        out.write("true")?;
+    } else {
+        out.write("")?;
     }
+
     Ok(())
 }

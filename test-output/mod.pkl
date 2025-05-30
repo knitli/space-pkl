@@ -11,12 +11,12 @@ import "toolchain.pkl"
 import "tasks.pkl"
 
 /// Workspace configuration schema
-typealias Workspace = workspace.WorkspaceConfig
+typealias Workspace = workspace.pkl.Workspace
 /// Project configuration schema
-typealias Project = project.ProjectConfig
+typealias Project = project.pkl.Project
 /// Template configuration schema
-typealias Template = template.TemplateConfig
+typealias Template = template.pkl.Template
 /// Toolchain configuration schema
-typealias Toolchain = toolchain.ToolchainConfig
+typealias Toolchain = toolchain.pkl.Toolchain
 /// Tasks configuration schema
-typealias Tasks = tasks.TasksConfig
+typealias Tasks = tasks.pkl.Tasks

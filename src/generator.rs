@@ -16,7 +16,7 @@ use schematic::Config;
 use schematic_types::{Schema, SchemaField, SchemaType};
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 /// Main schema generator for Moon configurations
 pub struct SchemaGenerator {
@@ -218,6 +218,7 @@ impl SchemaGenerator {
 
     /// Convert a single schema to a Pkl type
     fn convert_schema_to_pkl_type(&self, schema: &Schema, name: &str) -> Result<PklType> {
+        debug!("Converting schema '{}' of type: {:?}", name, schema.ty);
         let mut pkl_type = PklType {
             name: name.to_string(),
             documentation: schema.description.clone(),
@@ -234,6 +235,11 @@ impl SchemaGenerator {
                     let property = self.convert_field_to_property(field_name, field)?;
                     pkl_type.properties.push(property);
                 }
+                debug!(
+                    "Created struct class '{}' with {} properties",
+                    name,
+                    pkl_type.properties.len()
+                );
             }
             SchemaType::Enum(enum_type) => {
                 // For string enums, create a typealias with union of string literals
@@ -251,6 +257,11 @@ impl SchemaGenerator {
                         .collect();
 
                     pkl_type.enum_values = Some(enum_values.join(" | "));
+                    debug!(
+                        "Created enum typealias '{}' with values: {}",
+                        name,
+                        pkl_type.enum_values.as_ref().unwrap()
+                    );
                 } else {
                     // Empty enum, keep as class but mark it
                     pkl_type.documentation = Some(format!(
@@ -262,14 +273,61 @@ impl SchemaGenerator {
                             ""
                         }
                     ));
+                    debug!("Created empty enum class '{}'", name);
                 }
+            }
+            SchemaType::Union(union_type) => {
+                // Handle union types - create type alias for all unions
+                pkl_type.kind = PklTypeKind::TypeAlias;
+                let variant_types: Result<Vec<String>> = union_type
+                    .variants_types
+                    .iter()
+                    .map(|v| self.get_pkl_type_name(v))
+                    .collect();
+
+                match variant_types {
+                    Ok(types) => {
+                        let union_str = types.join(" | ");
+                        debug!(
+                            "Created union typealias '{}' with types: {}",
+                            name, union_str
+                        );
+                        pkl_type.enum_values = Some(union_str);
+                        debug!(
+                            "Union type for {}: {}",
+                            name,
+                            pkl_type.enum_values.as_ref().unwrap()
+                        );
+                    }
+                    Err(e) => {
+                        warn!("Failed to resolve union types for {}: {}", name, e);
+                        pkl_type.enum_values = Some("Any".to_string());
+                        debug!("Failed to resolve union '{}', using Any", name);
+                    }
+                }
+            }
+            SchemaType::Reference(ref_name) => {
+                // For reference types, we should create a proper class if it's not already defined
+                // For now, we'll handle this as a struct-like type
+                debug!("Reference type for {}: {}", name, ref_name);
+                debug!("Created reference class '{}'", name);
+                // Keep as class with no properties - the actual properties should come from the referenced schema
             }
             _ => {
                 // Handle other schema types as needed
                 debug!("Unhandled schema type for {}: {:?}", name, schema.ty);
+                debug!("Created fallback class '{}' for unhandled type", name);
+                // Keep as empty class for now - this preserves strong typing
             }
         }
 
+        debug!(
+            "Final PklType for '{}': kind={:?}, properties={}, enum_values={:?}",
+            name,
+            pkl_type.kind,
+            pkl_type.properties.len(),
+            pkl_type.enum_values
+        );
         Ok(pkl_type)
     }
 
@@ -612,7 +670,59 @@ impl SchemaGenerator {
                 format!("Mapping<{}, {}>", key_type, value_type)
             }
             SchemaType::Reference(ref_name) => ref_name.clone(),
-            SchemaType::Union(_) => "Any".to_string(),
+            SchemaType::Struct(_) => {
+                // For struct types, use the schema name if available, otherwise "Any"
+                schema.name.clone().unwrap_or_else(|| "Any".to_string())
+            }
+            SchemaType::Enum(_) => {
+                // For enum types, use the schema name if available, otherwise "Any"
+                schema.name.clone().unwrap_or_else(|| "Any".to_string())
+            }
+            SchemaType::Union(union_type) => {
+                // Handle union types properly, especially nullable patterns
+                let variant_types: Result<Vec<String>> = union_type
+                    .variants_types
+                    .iter()
+                    .map(|v| self.get_pkl_type_name(v))
+                    .collect();
+
+                match variant_types {
+                    Ok(types) => {
+                        // Check for nullable pattern (Type | Null)
+                        let null_index = types.iter().position(|t| t == "Null");
+                        let non_null_types: Vec<&String> =
+                            types.iter().filter(|t| *t != "Null").collect();
+
+                        if let Some(_) = null_index {
+                            // This is a nullable union
+                            if non_null_types.len() == 1 {
+                                // Simple nullable: T | Null -> T?
+                                format!("{}?", non_null_types[0])
+                            } else if non_null_types.len() > 1 {
+                                // Complex nullable: (T1 | T2) | Null -> (T1 | T2)?
+                                format!(
+                                    "({})?",
+                                    non_null_types
+                                        .iter()
+                                        .map(|s| s.as_str())
+                                        .collect::<Vec<_>>()
+                                        .join(" | ")
+                                )
+                            } else {
+                                // Only Null, shouldn't happen but handle gracefully
+                                "Null".to_string()
+                            }
+                        } else {
+                            // Non-nullable union: T1 | T2
+                            types.join(" | ")
+                        }
+                    }
+                    Err(_) => {
+                        // Fallback to Any if we can't resolve the union types
+                        "Any".to_string()
+                    }
+                }
+            }
             SchemaType::Null => "Null".to_string(),
             SchemaType::Unknown => "Any".to_string(),
             _ => "Any".to_string(),
