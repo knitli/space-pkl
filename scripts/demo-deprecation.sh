@@ -4,6 +4,19 @@
 
 set -e
 
+global workdir
+
+function get_base_path() {
+  local script_dir base_path
+
+  script_dir=$(dirname "$0")
+  base_path=$(realpath "$script_dir/..")
+  echo "$base_path"
+}
+
+
+global basepath="$(get_base_path)"
+
 echo "🌙 space-pkl Deprecation Feature Demonstration"
 echo "=============================================="
 echo
@@ -13,13 +26,13 @@ rm -rf demo-output-*
 
 echo "1. Generating schemas WITHOUT deprecated fields (default behavior)"
 echo "================================================================="
-./target/debug/space-pkl generate project -o demo-output-without-deprecated
+"$base_path/target/debug/space-pkl" generate project -o demo-output-without-deprecated
 echo "✅ Generated project schema without deprecated fields"
 echo
 
 echo "2. Generating schemas WITH deprecated fields included"
 echo "==================================================="
-./target/debug/space-pkl generate project --include-deprecated -o demo-output-with-deprecated
+"$base_path/target/debug/space-pkl" generate project --include-deprecated -o demo-output-with-deprecated
 echo "✅ Generated project schema with deprecated fields"
 echo
 
@@ -49,21 +62,7 @@ echo
 echo "6. Demonstration of CLI flags"
 echo "============================"
 echo "Available CLI options:"
-./target/debug/space-pkl generate --help | grep -A5 -B5 deprecated
+"$base_path/target/debug/space-pkl" generate --help | grep -A5 -B5 deprecated
 echo
 
-echo "7. Summary of Implementation"
-echo "============================"
-echo "✅ Added 'deprecated: Option<String>' field to PklProperty struct"
-echo "✅ Added 'deprecated: Option<String>' field to PklType struct for class-level deprecation"
-echo "✅ Added 'include_deprecated: bool' field to GeneratorConfig (defaults to false)"
-echo "✅ Added '--include-deprecated' CLI flag"
-echo "✅ Updated property conversion to extract deprecation from schematic schemas"
-echo "✅ Updated type conversion to handle class-level deprecation and filter deprecated properties"
-echo "✅ Added template support for @Deprecated decorator rendering"
-echo "✅ Added handlebars helper for deprecation decorator generation"
-echo "✅ Comprehensive test suite covering all deprecation scenarios"
-echo
-
-echo "🎉 Deprecation support implementation is complete and fully functional!"
 echo "   Use --include-deprecated flag to include deprecated fields in generated schemas"

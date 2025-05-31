@@ -6,7 +6,7 @@ use tempfile::TempDir;
 /// Test that all PKL schemas can be parsed without errors
 #[test]
 fn test_pkl_schemas_parse_successfully() {
-    let schema_dir = Path::new("pkl-schemas");
+    let schema_dir = Path::new("test-schemas");
     assert!(schema_dir.exists(), "PKL schemas directory should exist");
 
     let schema_files = [

@@ -1,5 +1,74 @@
-//! `generator.rs`
-//! Core schema generation functionality.
+//! Schema Generator Module
+//!
+//! This module provides the core functionality for generating PKL configuration schemas
+//! from Moon configuration types. It converts Rust configuration structures into
+//! strongly-typed PKL modules with validation, examples, and comprehensive documentation.
+//!
+//! # Features
+//!
+//! - **Automated Schema Generation**: Converts Moon configuration types to PKL schemas
+//! - **Type-Safe Conversion**: Preserves type safety and validation rules
+//! - **Comprehensive Examples**: Generates realistic examples for all schema types
+//! - **Validation Support**: Includes constraints, patterns, and enum validations
+//! - **Flexible Output**: Supports both single-file and multi-file generation
+//!
+//! # Core Components
+//!
+//! - [`SchemaGenerator`] - Main generator for converting configurations to PKL
+//! - Type conversion methods for different schema patterns (structs, enums, unions)
+//! - Template integration for customizable output formatting
+//! - Constraint extraction for validation rules
+//!
+//! # Usage Examples
+//!
+//! ## Basic Schema Generation
+//!
+//! ```rust
+//! use space_pkl::prelude::*;
+//!
+//! # fn main() -> space_pkl::Result<()> {
+//! let generator = SchemaGenerator::new(GeneratorConfig::default());
+//!
+//! // Generate all schemas at once
+//! generator.generate_all()?;
+//!
+//! // Or generate individual schemas
+//! let workspace_schema = generator.generate_workspace_schema()?;
+//! let project_schema = generator.generate_project_schema()?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Custom Configuration
+//!
+//! ```rust
+//! use space_pkl::prelude::*;
+//! use std::path::PathBuf;
+//!
+//! # fn main() -> space_pkl::Result<()> {
+//! let config = GeneratorConfig {
+//!     include_examples: true,
+//!     include_validation: true,
+//!     output_dir: PathBuf::from("./custom-schemas"),
+//!     module_name: "my_project".to_string(),
+//!     header: Some("// Custom PKL Schema\n".to_string()),
+//!     ..Default::default()
+//! };
+//!
+//! let generator = SchemaGenerator::new(config);
+//! generator.generate_all()?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Generated PKL Structure
+//!
+//! The generator creates PKL modules with:
+//!
+//! - **Type Definitions**: Classes and type aliases for all configuration types
+//! - **Property Constraints**: Validation rules using PKL's constraint system
+//! - **Documentation**: Comprehensive doc comments from Rust source
+//! - **Examples**: Usage examples for each property
 //!
 //! (c) 2025 Stash AI Inc (knitli)
 //!   - Created by Adam Poulemanos ([@bashandbone](https://github.com/bashandbone))
@@ -18,14 +87,115 @@ use std::fs;
 use std::path::Path;
 use tracing::{debug, info, warn};
 
-/// Main schema generator for Moon configurations
+/// Core schema generator for Moon configurations.
+///
+/// The `SchemaGenerator` is the main entry point for converting Moon configuration
+/// types into PKL schemas. It handles the complete workflow from Rust type introspection
+/// to PKL module generation, including template rendering and file output.
+///
+/// # Architecture
+///
+/// The generator uses a multi-stage conversion process:
+/// 1. **Type Analysis**: Uses `schematic` to introspect Rust configuration types
+/// 2. **Schema Conversion**: Converts schematic schemas to PKL type definitions
+/// 3. **Template Rendering**: Applies PKL template formatting with custom rules
+/// 4. **File Generation**: Outputs formatted PKL files with proper structure
+///
+/// # Thread Safety
+///
+/// `SchemaGenerator` is `Send` and `Sync`, making it safe to use across threads.
+/// Each instance maintains its own configuration and template engine state.
+///
+/// # Examples
+///
+/// ## Basic Usage
+///
+/// ```rust
+/// use space_pkl::prelude::*;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let generator = SchemaGenerator::new(GeneratorConfig::default());
+///
+/// // Generate all Moon configuration schemas
+/// generator.generate_all()?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// ## Individual Schema Generation
+///
+/// ```rust
+/// use space_pkl::prelude::*;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let generator = SchemaGenerator::new(GeneratorConfig::default());
+///
+/// let workspace_pkl = generator.generate_workspace_schema()?;
+/// let project_pkl = generator.generate_project_schema()?;
+/// let toolchain_pkl = generator.generate_toolchain_schema()?;
+///
+/// // Use the generated PKL strings as needed
+/// println!("Generated {} chars of workspace schema", workspace_pkl.len());
+/// # Ok(())
+/// # }
+/// ```
+///
+/// ## Custom Configuration
+///
+/// ```rust
+/// use space_pkl::prelude::*;
+/// use std::path::PathBuf;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let config = GeneratorConfig {
+///     include_examples: true,
+///     include_validation: true,
+///     include_deprecated: false, // Skip deprecated fields
+///     output_dir: PathBuf::from("./my-schemas"),
+///     module_name: "my_project".to_string(),
+///     header: Some("// Generated Moon PKL Schema\n".to_string()),
+///     ..Default::default()
+/// };
+///
+/// let generator = SchemaGenerator::new(config);
+/// generator.generate_all()?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct SchemaGenerator {
     config: GeneratorConfig,
     template_engine: TemplateEngine,
 }
 
 impl SchemaGenerator {
-    /// Create a new schema generator with the given configuration
+    /// Creates a new schema generator with the specified configuration.
+    ///
+    /// The generator initializes with a template engine configured for the given
+    /// settings. All subsequent schema generation operations will use this configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Configuration controlling schema generation behavior
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    /// use std::path::PathBuf;
+    ///
+    /// // Default configuration
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    ///
+    /// // Custom configuration
+    /// let custom_config = GeneratorConfig {
+    ///     include_examples: true,
+    ///     include_validation: true,
+    ///     output_dir: PathBuf::from("./schemas"),
+    ///     module_name: "myapp".to_string(),
+    ///     ..Default::default()
+    /// };
+    /// let custom_generator = SchemaGenerator::new(custom_config);
+    /// ```
     pub fn new(config: GeneratorConfig) -> Self {
         let template_engine = TemplateEngine::new(&config);
         Self {
@@ -34,7 +204,52 @@ impl SchemaGenerator {
         }
     }
 
-    /// Generate all Moon configuration schemas
+    /// Generates all Moon configuration schemas and writes them to files.
+    ///
+    /// This is the primary method for batch generation. It creates all supported
+    /// Moon configuration schemas (workspace, project, template, toolchain, and tasks)
+    /// and writes them to the configured output directory.
+    ///
+    /// # File Structure
+    ///
+    /// When `split_types` is enabled (default), generates:
+    /// - `workspace.pkl` - Workspace configuration schema
+    /// - `project.pkl` - Project configuration schema
+    /// - `template.pkl` - Template configuration schema
+    /// - `toolchain.pkl` - Toolchain configuration schema
+    /// - `tasks.pkl` - Task configuration schema
+    /// - `mod.pkl` - Module index importing all schemas
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Output directory cannot be created
+    /// - Schema generation fails for any configuration type
+    /// - File writing permissions are insufficient
+    /// - Template rendering encounters issues
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    /// use std::path::PathBuf;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let config = GeneratorConfig {
+    ///     output_dir: PathBuf::from("./pkl-schemas"),
+    ///     include_examples: true,
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let generator = SchemaGenerator::new(config);
+    /// generator.generate_all()?;
+    ///
+    /// // Files are now available in ./pkl-schemas/
+    /// assert!(PathBuf::from("./pkl-schemas/workspace.pkl").exists());
+    /// assert!(PathBuf::from("./pkl-schemas/project.pkl").exists());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_all(&self) -> Result<()> {
         info!("Generating all Moon configuration schemas");
 
@@ -61,37 +276,212 @@ impl SchemaGenerator {
         Ok(())
     }
 
-    /// Generate workspace configuration schema
+    /// Generates a PKL schema for Moon workspace configuration.
+    ///
+    /// Creates a comprehensive PKL module for `WorkspaceConfig` including all
+    /// workspace-level settings, project discovery rules, and tool configurations.
+    ///
+    /// # Generated Schema Includes
+    ///
+    /// - Workspace metadata (name, version, description)
+    /// - Project discovery patterns and configuration
+    /// - Global tool settings and version constraints
+    /// - VCS and CI/CD integration settings
+    /// - Dependency management configuration
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the complete PKL module definition ready for use.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    /// let workspace_pkl = generator.generate_workspace_schema()?;
+    ///
+    /// // The generated PKL can be written to a file or used directly
+    /// println!("Generated workspace schema:\n{}", workspace_pkl);
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Sample Output
+    ///
+    /// ```pkl
+    /// /// Moon workspace configuration schema
+    /// module workspace
+    ///
+    /// /// Workspace configuration for Moon
+    /// class WorkspaceConfig {
+    ///   /// Workspace display name
+    ///   name: String?
+    ///
+    ///   /// Project discovery patterns
+    ///   projects: Listing<String>?
+    ///
+    ///   /// Global tool versions
+    ///   version_constraint: String?
+    /// }
+    /// ```
     pub fn generate_workspace_schema(&self) -> Result<String> {
         debug!("Generating workspace schema");
         self.generate_schema_for_type::<WorkspaceConfig>("Workspace")
     }
 
-    /// Generate project configuration schema
+    /// Generates a PKL schema for Moon project configuration.
+    ///
+    /// Creates a PKL module for `ProjectConfig` covering project-specific settings,
+    /// build configuration, dependency management, and task definitions.
+    ///
+    /// # Generated Schema Includes
+    ///
+    /// - Project metadata and identification
+    /// - Language and platform configuration
+    /// - Build and output settings
+    /// - Task and target definitions
+    /// - Dependency and workspace relationships
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    /// let project_pkl = generator.generate_project_schema()?;
+    ///
+    /// // Save to file
+    /// std::fs::write("project.pkl", project_pkl)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_project_schema(&self) -> Result<String> {
         debug!("Generating project schema");
         self.generate_schema_for_type::<ProjectConfig>("Project")
     }
 
-    /// Generate template configuration schema
+    /// Generates a PKL schema for Moon template configuration.
+    ///
+    /// Creates a PKL module for `TemplateConfig` used in project scaffolding
+    /// and code generation workflows.
+    ///
+    /// # Generated Schema Includes
+    ///
+    /// - Template metadata and variables
+    /// - File generation rules and patterns
+    /// - Variable substitution configuration
+    /// - Template inheritance and composition
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    /// let template_pkl = generator.generate_template_schema()?;
+    /// println!("Template schema: {} characters", template_pkl.len());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_template_schema(&self) -> Result<String> {
         debug!("Generating template schema");
         self.generate_schema_for_type::<TemplateConfig>("Template")
     }
 
-    /// Generate toolchain configuration schema
+    /// Generates a PKL schema for Moon toolchain configuration.
+    ///
+    /// Creates a PKL module for `ToolchainConfig` defining tool versions,
+    /// installation preferences, and environment setup.
+    ///
+    /// # Generated Schema Includes
+    ///
+    /// - Tool version specifications and constraints
+    /// - Installation and download configuration
+    /// - Environment variable setup
+    /// - Tool-specific settings and preferences
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    /// let toolchain_pkl = generator.generate_toolchain_schema()?;
+    ///
+    /// // Check if specific tools are configured
+    /// assert!(toolchain_pkl.contains("ToolchainConfig"));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_toolchain_schema(&self) -> Result<String> {
         debug!("Generating toolchain schema");
         self.generate_schema_for_type::<ToolchainConfig>("Toolchain")
     }
 
-    /// Generate tasks configuration schema
+    /// Generates a PKL schema for Moon task configuration.
+    ///
+    /// Creates a PKL module for `InheritedTasksConfig` covering shared task
+    /// definitions, inheritance patterns, and task execution settings.
+    ///
+    /// # Generated Schema Includes
+    ///
+    /// - Task definitions and command specifications
+    /// - Input/output file patterns and dependencies
+    /// - Environment variable configuration
+    /// - Task inheritance and merging rules
+    /// - Platform-specific task variations
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use space_pkl::prelude::*;
+    ///
+    /// # fn main() -> space_pkl::Result<()> {
+    /// let generator = SchemaGenerator::new(GeneratorConfig::default());
+    /// let tasks_pkl = generator.generate_tasks_schema()?;
+    ///
+    /// // Verify task schema generation
+    /// assert!(tasks_pkl.contains("InheritedTasksConfig"));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn generate_tasks_schema(&self) -> Result<String> {
         debug!("Generating tasks schema");
         self.generate_schema_for_type::<InheritedTasksConfig>("Tasks")
     }
 
-    /// Generate schema for a specific type
+    /// Internal method to generate a PKL schema for a specific configuration type.
+    ///
+    /// This is the core conversion method that:
+    /// 1. Uses `schematic` to introspect the Rust configuration type `T`
+    /// 2. Converts the generated schemas to PKL type representations
+    /// 3. Renders the final PKL module using the template engine
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - A configuration type implementing `schematic::Config`
+    ///
+    /// # Arguments
+    ///
+    /// * `type_name` - Human-readable name for the schema (e.g., "Workspace", "Project")
+    ///
+    /// # Returns
+    ///
+    /// The complete PKL module as a formatted string.
+    ///
+    /// # Implementation Details
+    ///
+    /// This method handles complex type conversions including:
+    /// - Struct types with nested fields and validation
+    /// - Enum types with string/numeric literals
+    /// - Union types with nullable patterns
+    /// - Array and mapping types with generic parameters
+    /// - Reference types and cross-schema dependencies
     fn generate_schema_for_type<T: Config>(&self, type_name: &str) -> Result<String> {
         let mut generator = SchematicGenerator::default();
         generator.add::<T>();
@@ -181,7 +571,34 @@ impl SchemaGenerator {
         Ok(())
     }
 
-    /// Convert schematic schemas to Pkl module representation
+    /// Converts a collection of schematic schemas into a complete PKL module.
+    ///
+    /// This method orchestrates the conversion from raw schema data to a structured
+    /// PKL module representation. It handles type dependency resolution, export
+    /// generation, and module organization.
+    ///
+    /// # Arguments
+    ///
+    /// * `schemas` - Map of schema names to their definitions from schematic introspection
+    /// * `type_name` - Primary type name used for module naming and main exports
+    ///
+    /// # Returns
+    ///
+    /// A `PklModule` containing all converted types, exports, and metadata.
+    ///
+    /// # Processing Steps
+    ///
+    /// 1. **Type Conversion**: Each schema is converted to a `PklType` with proper kind classification
+    /// 2. **Export Resolution**: Main configuration types are automatically exported
+    /// 3. **Documentation Generation**: Module-level documentation is created
+    /// 4. **Dependency Analysis**: Cross-references between types are preserved
+    ///
+    /// # Type Classification
+    ///
+    /// - `Struct` → PKL `Class` with properties and constraints
+    /// - `Enum` → PKL `TypeAlias` with union of literal values
+    /// - `Union` → PKL `TypeAlias` with type alternatives
+    /// - `Reference` → PKL `Class` referencing external types
     fn convert_schemas_to_pkl(
         &self,
         schemas: indexmap::IndexMap<String, Schema>,
@@ -204,8 +621,8 @@ impl SchemaGenerator {
             let pkl_type = self.convert_schema_to_pkl_type(&schema, &name)?;
             module.types.push(pkl_type);
 
-            // Add export for the main type
-            if name == type_name || name.ends_with("Config") {
+            // Add export for the main type (prefer exact match, then primary config)
+            if name == type_name || (name.ends_with("Config") && !schema.deprecated.is_some()) {
                 module.exports.push(PklExport {
                     name: name.clone(),
                     type_name: name.clone(),
@@ -216,7 +633,59 @@ impl SchemaGenerator {
         Ok(module)
     }
 
-    /// Convert a single schema to a Pkl type
+    /// Converts a single schematic schema into a PKL type definition.
+    ///
+    /// This is the core type conversion method that handles the mapping from
+    /// schematic's type system to PKL's type system. It preserves semantic
+    /// meaning while adapting to PKL's syntax and capabilities.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schematic schema to convert
+    /// * `name` - The name to use for the generated PKL type
+    ///
+    /// # Returns
+    ///
+    /// A `PklType` representing the schema in PKL's type system.
+    ///
+    /// # Type Conversion Rules
+    ///
+    /// ## Struct Types
+    /// - Converted to PKL `Class` types
+    /// - Each field becomes a class property with appropriate type and constraints
+    /// - Optional fields are marked with `?` nullable syntax
+    /// - Deprecated fields are optionally included based on configuration
+    ///
+    /// ## Enum Types
+    /// - String enums → `TypeAlias` with union of string literals (`"value1" | "value2"`)
+    /// - Numeric enums → `TypeAlias` with union of numeric literals (`1 | 2 | 3`)
+    /// - Empty enums → `Class` with documentation noting the empty state
+    ///
+    /// ## Union Types
+    /// - Multiple alternatives → `TypeAlias` with union syntax (`Type1 | Type2`)
+    /// - Nullable patterns → Simplified to `Type?` when possible
+    /// - Complex nullable → `(Type1 | Type2)?` for multi-type nullables
+    ///
+    /// ## Reference Types
+    /// - Preserved as `Class` types referencing external definitions
+    /// - Properties resolved from the referenced schema when available
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Struct with validation becomes PKL class
+    /// struct Config {
+    ///     name: String,      // → name: String
+    ///     port: Option<u16>, // → port: Int?
+    /// }
+    ///
+    /// // Enum becomes type alias
+    /// enum Mode { Dev, Prod } // → "dev" | "prod"
+    ///
+    /// // Union becomes type alias
+    /// String | i32            // → String | Int
+    /// Option<String>          // → String?
+    /// ```
     fn convert_schema_to_pkl_type(&self, schema: &Schema, name: &str) -> Result<PklType> {
         debug!("Converting schema '{}' of type: {:?}", name, schema.ty);
         let mut pkl_type = PklType {
@@ -237,7 +706,10 @@ impl SchemaGenerator {
 
                     // Filter deprecated properties based on configuration
                     if property.deprecated.is_some() && !self.config.include_deprecated {
-                        debug!("Skipping deprecated property '{}' in '{}'", field_name, name);
+                        debug!(
+                            "Skipping deprecated property '{}' in '{}'",
+                            field_name, name
+                        );
                         continue;
                     }
 
@@ -339,7 +811,47 @@ impl SchemaGenerator {
         Ok(pkl_type)
     }
 
-    /// Convert a struct field to a Pkl property
+    /// Converts a struct field from schematic into a PKL property definition.
+    ///
+    /// This method handles the complete conversion of a field including its type,
+    /// validation constraints, default values, examples, and metadata.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The field name in the struct
+    /// * `field` - The schematic field definition with type and metadata
+    ///
+    /// # Returns
+    ///
+    /// A `PklProperty` with complete type information and constraints.
+    ///
+    /// # Conversion Features
+    ///
+    /// - **Type Mapping**: Rust types mapped to appropriate PKL types
+    /// - **Constraint Extraction**: Validation rules become PKL constraints
+    /// - **Default Values**: Sensible defaults generated for different types
+    /// - **Examples**: Realistic example values for documentation
+    /// - **Deprecation**: Deprecated field information preserved
+    ///
+    /// # Example Conversions
+    ///
+    /// ```rust,ignore
+    /// // String field with validation
+    /// #[validate(length(min = 1, max = 50))]
+    /// name: String
+    /// // Becomes:
+    /// // name: String(length >= 1)(length <= 50)
+    ///
+    /// // Optional numeric field
+    /// port: Option<u16>
+    /// // Becomes:
+    /// // port: Int? = null
+    ///
+    /// // Array field
+    /// tags: Vec<String>
+    /// // Becomes:
+    /// // tags: Listing<String> = new Listing {}
+    /// ```
     fn convert_field_to_property(&self, name: &str, field: &SchemaField) -> Result<PklProperty> {
         let type_name = self.get_pkl_type_name(&field.schema)?;
         let default = self.extract_default_value(&field.schema)?;
@@ -354,11 +866,51 @@ impl SchemaGenerator {
             default,
             constraints,
             examples,
-            deprecated: field.deprecated.clone().or_else(|| field.schema.deprecated.clone()),
+            deprecated: field
+                .deprecated
+                .clone()
+                .or_else(|| field.schema.deprecated.clone()),
         })
     }
 
-    /// Extract default value from schema if available
+    /// Extracts sensible default values from schema type information.
+    ///
+    /// Generates appropriate PKL default values based on the schema type and constraints.
+    /// This helps provide meaningful starting points for configuration values.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schema to extract defaults from
+    ///
+    /// # Returns
+    ///
+    /// An optional default value string in PKL syntax, or `None` if no sensible default exists.
+    ///
+    /// # Default Generation Rules
+    ///
+    /// - **String Types**: First enum value if available, otherwise no default
+    /// - **Boolean Types**: Always defaults to `false`
+    /// - **Integer Types**: First enum value, minimum value, or no default
+    /// - **Float Types**: First enum value, minimum value, or no default
+    /// - **Array Types**: Empty `new Listing {}`
+    /// - **Object Types**: Empty `new Mapping {}`
+    /// - **Other Types**: No default generated
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Enum string → first value
+    /// enum Mode { "dev", "prod" } → "dev"
+    ///
+    /// // Integer with min → min value
+    /// port: u16 (min: 8000) → 8000
+    ///
+    /// // Boolean → false
+    /// enabled: bool → false
+    ///
+    /// // Array → empty listing
+    /// items: Vec<String> → new Listing {}
+    /// ```
     fn extract_default_value(&self, schema: &Schema) -> Result<Option<String>> {
         let default_value = match &schema.ty {
             SchemaType::String(string_type) => {
@@ -407,7 +959,50 @@ impl SchemaGenerator {
         Ok(default_value)
     }
 
-    /// Extract validation constraints from schema
+    /// Extracts validation constraints from schema and converts them to PKL constraint syntax.
+    ///
+    /// This method analyzes schema validation rules and converts them into PKL's
+    /// constraint system, preserving validation semantics while adapting syntax.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schema containing validation rules
+    ///
+    /// # Returns
+    ///
+    /// A vector of `PklConstraint` objects representing all applicable validation rules.
+    ///
+    /// # Supported Constraint Types
+    ///
+    /// ## String Constraints
+    /// - **Length**: `min_length`/`max_length` → `length >= N` / `length <= N`
+    /// - **Pattern**: `pattern` → `matches(Regex(#"pattern"#))`
+    /// - **Enum Values**: Multiple enum values → `oneOf("val1"|"val2"|"val3")`
+    ///
+    /// ## Numeric Constraints (Integer/Float)
+    /// - **Range**: `min`/`max` → `this >= N` / `this <= N`
+    /// - **Multiple**: `multiple_of` → `this % N == 0`
+    /// - **Enum Values**: Multiple enum values → `oneOf(1|2|3)`
+    ///
+    /// ## Array Constraints
+    /// - **Size**: `min_length`/`max_length` → `length >= N` / `length <= N`
+    /// - **Uniqueness**: `unique` → `isDistinct`
+    ///
+    /// # Example Conversions
+    ///
+    /// ```rust,ignore
+    /// // String with pattern and length
+    /// #[validate(length(min = 3, max = 20), regex = "^[a-z]+$")]
+    /// name: String
+    /// // Becomes:
+    /// // name: String(length >= 3)(length <= 20)(matches(Regex(#"^[a-z]+$"#)))
+    ///
+    /// // Integer with range
+    /// #[validate(range(min = 1, max = 100))]
+    /// count: i32
+    /// // Becomes:
+    /// // count: Int(this >= 1)(this <= 100)
+    /// ```
     fn extract_constraints(&self, schema: &Schema) -> Result<Vec<PklConstraint>> {
         let mut constraints = Vec::new();
 
@@ -551,7 +1146,56 @@ impl SchemaGenerator {
         Ok(constraints)
     }
 
-    /// Extract example values from schema
+    /// Generates realistic example values for schema types to enhance documentation.
+    ///
+    /// Creates meaningful, contextually appropriate examples that help users understand
+    /// how to use configuration properties. Examples are formatted in valid PKL syntax.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schema to generate examples for
+    ///
+    /// # Returns
+    ///
+    /// A vector of example value strings in PKL syntax.
+    ///
+    /// # Example Generation Strategy
+    ///
+    /// ## String Types
+    /// - **Format-aware**: URLs, emails, UUIDs get realistic examples
+    /// - **Enum values**: First 3 enum options as examples
+    /// - **Patterns**: Generic examples for regex patterns
+    /// - **Fallback**: `"example"` for unspecified strings
+    ///
+    /// ## Numeric Types
+    /// - **Enum values**: All enum options as examples
+    /// - **Range-based**: Uses minimum value or sensible defaults
+    /// - **Integer**: `42` as fallback, respects min/max constraints
+    /// - **Float**: `3.14` as fallback, respects min/max constraints
+    ///
+    /// ## Collection Types
+    /// - **Arrays**: Empty listing + example with sample items
+    /// - **Objects**: Empty mapping with key/value type information
+    ///
+    /// ## Boolean Types
+    /// - Always provides both `true` and `false` examples
+    ///
+    /// # Example Outputs
+    ///
+    /// ```pkl
+    /// // URL string format
+    /// "https://example.com"
+    ///
+    /// // Email string format
+    /// "user@example.com"
+    ///
+    /// // Array examples
+    /// new Listing<String> {}
+    /// new Listing { "item1"; "item2" }
+    ///
+    /// // Object examples
+    /// new Mapping<String, Int> {}
+    /// ```
     fn extract_examples(&self, schema: &Schema) -> Result<Vec<String>> {
         let mut examples = Vec::new();
 
@@ -662,7 +1306,54 @@ impl SchemaGenerator {
         Ok(examples)
     }
 
-    /// Get the Pkl type name for a schema
+    /// Resolves the appropriate PKL type name for a given schema.
+    ///
+    /// This method handles the complex mapping from schematic's type system to PKL's
+    /// type names, including generic types, nullable patterns, and custom type mappings.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schema to resolve the PKL type name for
+    ///
+    /// # Returns
+    ///
+    /// The PKL type name as a string, ready for use in PKL syntax.
+    ///
+    /// # Type Resolution Rules
+    ///
+    /// ## Primitive Types
+    /// - `String` → `"String"`
+    /// - `Boolean` → `"Boolean"`
+    /// - `Integer` → `"Int"`
+    /// - `Float` → `"Float"`
+    ///
+    /// ## Generic Types
+    /// - `Array<T>` → `"Listing<T>"`
+    /// - `Object<K,V>` → `"Mapping<K, V>"`
+    ///
+    /// ## Complex Types
+    /// - `Union<T1, T2>` → `"T1 | T2"`
+    /// - `Option<T>` → `"T?"` (nullable shorthand)
+    /// - `Complex Nullable` → `"(T1 | T2)?"` (complex nullable union)
+    ///
+    /// ## Custom Mappings
+    /// - Applies configured type mappings from `GeneratorConfig::type_mappings`
+    /// - Allows overriding default type names (e.g., `"String"` → `"Text"`)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Basic types
+    /// String → "String"
+    /// i32 → "Int"
+    /// Vec<String> → "Listing<String>"
+    /// HashMap<String, i32> → "Mapping<String, Int>"
+    ///
+    /// // Nullable patterns
+    /// Option<String> → "String?"
+    /// Union<String, i32, Null> → "(String | Int)?"
+    /// Union<String, i32> → "String | Int"
+    /// ```
     fn get_pkl_type_name(&self, schema: &Schema) -> Result<String> {
         let type_name = match &schema.ty {
             SchemaType::String(_) => "String".to_string(),
@@ -723,7 +1414,11 @@ impl SchemaGenerator {
                             }
                         } else {
                             // Non-nullable union: T1 | T2
-                            types.join(" | ")
+                            if types.is_empty() {
+                                "Any".to_string()
+                            } else {
+                                types.join(" | ")
+                            }
                         }
                     }
                     Err(_) => {
@@ -746,23 +1441,1723 @@ impl SchemaGenerator {
     }
 }
 
-/// Convenience functions for generating specific schemas
+/// Convenience Functions
+///
+/// These functions provide a simple API for generating individual schemas without
+/// needing to create a `SchemaGenerator` instance. They use default configuration
+/// and are ideal for quick schema generation or simple use cases.
+
+/// Generates a workspace configuration schema using default settings.
+///
+/// This is a convenience function that creates a default `SchemaGenerator` and
+/// generates the workspace schema. Equivalent to creating a generator with
+/// `GeneratorConfig::default()` and calling `generate_workspace_schema()`.
+///
+/// # Returns
+///
+/// A `String` containing the complete PKL workspace schema.
+///
+/// # Examples
+///
+/// ```rust
+/// use space_pkl::generate_workspace_schema;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let workspace_pkl = generate_workspace_schema()?;
+/// println!("Generated workspace schema: {} characters", workspace_pkl.len());
+///
+/// // Save to file
+/// std::fs::write("workspace.pkl", workspace_pkl)?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # See Also
+///
+/// - [`SchemaGenerator::generate_workspace_schema`] for custom configuration
+/// - [`generate_all_schemas`] for generating all schemas at once
 pub fn generate_workspace_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_workspace_schema()
 }
 
+/// Generates a project configuration schema using default settings.
+///
+/// This convenience function creates a PKL schema for Moon project configuration
+/// without requiring manual setup of a `SchemaGenerator` instance.
+///
+/// # Returns
+///
+/// A `String` containing the complete PKL project schema with all project-level
+/// configuration options including build settings, dependencies, and tasks.
+///
+/// # Examples
+///
+/// ```rust
+/// use space_pkl::generate_project_schema;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let project_pkl = generate_project_schema()?;
+///
+/// // Check for specific project configuration elements
+/// assert!(project_pkl.contains("ProjectConfig"));
+///
+/// // Use in your application
+/// println!("Project schema ready: {} chars", project_pkl.len());
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Generated Schema Features
+///
+/// - Project identification and metadata
+/// - Language and platform configuration
+/// - Build and compilation settings
+/// - Task definitions and dependencies
+/// - Tool-specific configurations
 pub fn generate_project_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_project_schema()
 }
 
+/// Generates a template configuration schema using default settings.
+///
+/// Creates a PKL schema for Moon template configuration used in project
+/// scaffolding and code generation workflows.
+///
+/// # Returns
+///
+/// A `String` containing the PKL template schema with variable definitions,
+/// file patterns, and template composition rules.
+///
+/// # Examples
+///
+/// ```rust
+/// use space_pkl::generate_template_schema;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let template_pkl = generate_template_schema()?;
+///
+/// // Template schemas are typically smaller than project schemas
+/// println!("Template schema: {} bytes", template_pkl.len());
+///
+/// // Save for use in template development
+/// std::fs::write("template.pkl", template_pkl)?;
+/// # Ok(())
+/// # }
+/// ```
 pub fn generate_template_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_template_schema()
 }
 
+/// Generates a toolchain configuration schema using default settings.
+///
+/// Creates a PKL schema for Moon toolchain configuration covering tool versions,
+/// installation preferences, and environment setup.
+///
+/// # Returns
+///
+/// A `String` containing the PKL toolchain schema with tool definitions,
+/// version constraints, and environment configurations.
+///
+/// # Examples
+///
+/// ```rust
+/// use space_pkl::generate_toolchain_schema;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let toolchain_pkl = generate_toolchain_schema()?;
+///
+/// // Toolchain schemas define tool versions and setup
+/// assert!(toolchain_pkl.contains("ToolchainConfig"));
+///
+/// // Integrate with CI/CD pipelines
+/// println!("Toolchain definition ready");
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Schema Contents
+///
+/// - Tool version specifications and constraints
+/// - Download and installation configuration
+/// - Environment variable setup
+/// - Platform-specific tool variations
 pub fn generate_toolchain_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_toolchain_schema()
 }
 
+/// Generates a tasks configuration schema using default settings.
+///
+/// Creates a PKL schema for Moon task configuration including shared task
+/// definitions, inheritance patterns, and execution settings.
+///
+/// # Returns
+///
+/// A `String` containing the PKL tasks schema with task definitions,
+/// inheritance rules, and execution configuration.
+///
+/// # Examples
+///
+/// ```rust
+/// use space_pkl::generate_tasks_schema;
+///
+/// # fn main() -> space_pkl::Result<()> {
+/// let tasks_pkl = generate_tasks_schema()?;
+///
+/// // Tasks schemas define reusable task configurations
+/// assert!(tasks_pkl.contains("InheritedTasksConfig"));
+///
+/// // Use for shared task definitions across projects
+/// std::fs::write("tasks.pkl", tasks_pkl)?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Schema Features
+///
+/// - Task command definitions and arguments
+/// - Input/output file patterns and caching
+/// - Environment variable configuration
+/// - Task inheritance and merging strategies
+/// - Platform-specific task variations
+/// - Dependency management between tasks
 pub fn generate_tasks_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_tasks_schema()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{GeneratorConfig, TemplateConfig};
+    use schematic_types::{
+        ArrayType, BooleanType, EnumType, FloatType, IntegerType, LiteralValue, ObjectType,
+        StringType, StructType, UnionOperator, UnionType,
+    };
+    use std::collections::{BTreeMap, HashMap};
+
+    fn create_test_config() -> GeneratorConfig {
+        GeneratorConfig {
+            include_comments: true,
+            include_examples: true,
+            include_validation: true,
+            include_deprecated: false,
+            header: Some("Test header".to_string()),
+            footer: None,
+            output_dir: std::env::temp_dir().join("test_pkl"),
+            module_name: "test".to_string(),
+            split_types: true,
+            type_mappings: HashMap::new(),
+            template: TemplateConfig::default(),
+        }
+    }
+
+    #[test]
+    fn test_schema_generator_new() {
+        let config = create_test_config();
+        let generator = SchemaGenerator::new(config.clone());
+
+        assert_eq!(generator.config.module_name, "test");
+        assert!(generator.config.include_comments);
+        assert_eq!(
+            generator.config.output_dir,
+            std::env::temp_dir().join("test_pkl")
+        );
+    }
+
+    #[test]
+    fn test_convenience_functions() {
+        // Test that convenience functions don't panic and return some content
+        let workspace_result = generate_workspace_schema();
+        assert!(workspace_result.is_ok());
+
+        let project_result = generate_project_schema();
+        assert!(project_result.is_ok());
+
+        let template_result = generate_template_schema();
+        assert!(template_result.is_ok());
+
+        let toolchain_result = generate_toolchain_schema();
+        assert!(toolchain_result.is_ok());
+
+        let tasks_result = generate_tasks_schema();
+        assert!(tasks_result.is_ok());
+    }
+
+    #[test]
+    fn test_get_pkl_type_name_basic_types() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test string type
+        let string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType::default())),
+        };
+        assert_eq!(
+            generator.get_pkl_type_name(&string_schema).unwrap(),
+            "String"
+        );
+
+        // Test boolean type
+        let bool_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Boolean(Box::new(BooleanType::default())),
+        };
+        assert_eq!(
+            generator.get_pkl_type_name(&bool_schema).unwrap(),
+            "Boolean"
+        );
+
+        // Test integer type
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType::default())),
+        };
+        assert_eq!(generator.get_pkl_type_name(&int_schema).unwrap(), "Int");
+
+        // Test float type
+        let float_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Float(Box::new(FloatType::default())),
+        };
+        assert_eq!(generator.get_pkl_type_name(&float_schema).unwrap(), "Float");
+    }
+
+    #[test]
+    fn test_get_pkl_type_name_array_type() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                min_length: None,
+                max_length: None,
+                unique: None,
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        assert_eq!(
+            generator.get_pkl_type_name(&array_schema).unwrap(),
+            "Listing<String>"
+        );
+    }
+
+    #[test]
+    fn test_get_pkl_type_name_object_type() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let object_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Object(Box::new(ObjectType {
+                key_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                value_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                }),
+                min_length: None,
+                max_length: None,
+                required: None,
+            })),
+        };
+
+        assert_eq!(
+            generator.get_pkl_type_name(&object_schema).unwrap(),
+            "Mapping<String, Int>"
+        );
+    }
+
+    #[test]
+    fn test_get_pkl_type_name_reference_type() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let ref_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Reference("CustomType".to_string()),
+        };
+
+        assert_eq!(
+            generator.get_pkl_type_name(&ref_schema).unwrap(),
+            "CustomType"
+        );
+    }
+
+    #[test]
+    fn test_get_pkl_type_name_nullable_union() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let union_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::String(Box::new(StringType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Null,
+                    }),
+                ],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        assert_eq!(
+            generator.get_pkl_type_name(&union_schema).unwrap(),
+            "String?"
+        );
+    }
+
+    #[test]
+    fn test_extract_default_value_string_with_enum() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                enum_values: Some(vec!["option1".to_string(), "option2".to_string()]),
+                ..Default::default()
+            })),
+        };
+
+        let default = generator.extract_default_value(&string_schema).unwrap();
+        assert_eq!(default, Some("\"option1\"".to_string()));
+    }
+
+    #[test]
+    fn test_extract_default_value_boolean() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let bool_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Boolean(Box::new(BooleanType::default())),
+        };
+
+        let default = generator.extract_default_value(&bool_schema).unwrap();
+        assert_eq!(default, Some("false".to_string()));
+    }
+
+    #[test]
+    fn test_extract_default_value_integer_with_min() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType {
+                min: Some(10),
+                ..Default::default()
+            })),
+        };
+
+        let default = generator.extract_default_value(&int_schema).unwrap();
+        assert_eq!(default, Some("10".to_string()));
+    }
+
+    #[test]
+    fn test_extract_default_value_array() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                min_length: None,
+                max_length: None,
+                unique: None,
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        let default = generator.extract_default_value(&array_schema).unwrap();
+        assert_eq!(default, Some("new Listing {}".to_string()));
+    }
+
+    #[test]
+    fn test_extract_constraints_string_length() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                min_length: Some(5),
+                max_length: Some(20),
+                ..Default::default()
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&string_schema).unwrap();
+        assert_eq!(constraints.len(), 2);
+
+        assert_eq!(constraints[0].kind, PklConstraintKind::Length);
+        assert_eq!(constraints[0].value, "length >= 5");
+
+        assert_eq!(constraints[1].kind, PklConstraintKind::Length);
+        assert_eq!(constraints[1].value, "length <= 20");
+    }
+
+    #[test]
+    fn test_extract_constraints_string_pattern() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                pattern: Some("^[a-z]+$".to_string()),
+                ..Default::default()
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&string_schema).unwrap();
+        assert_eq!(constraints.len(), 1);
+
+        assert_eq!(constraints[0].kind, PklConstraintKind::Pattern);
+        assert_eq!(constraints[0].value, "matches(Regex(#\"^[a-z]+$\"#))");
+    }
+
+    #[test]
+    fn test_extract_constraints_integer_min_max() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType {
+                min: Some(0),
+                max: Some(100),
+                ..Default::default()
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&int_schema).unwrap();
+        assert_eq!(constraints.len(), 2);
+
+        assert_eq!(constraints[0].kind, PklConstraintKind::Min);
+        assert_eq!(constraints[0].value, "this >= 0");
+
+        assert_eq!(constraints[1].kind, PklConstraintKind::Max);
+        assert_eq!(constraints[1].value, "this <= 100");
+    }
+
+    #[test]
+    fn test_extract_constraints_array_unique() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                unique: Some(true),
+                min_length: None,
+                max_length: None,
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&array_schema).unwrap();
+        assert_eq!(constraints.len(), 1);
+
+        assert_eq!(constraints[0].kind, PklConstraintKind::Custom);
+        assert_eq!(constraints[0].value, "isDistinct");
+    }
+
+    #[test]
+    fn test_extract_examples_string_format() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let url_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                format: Some("url".to_string()),
+                ..Default::default()
+            })),
+        };
+
+        let examples = generator.extract_examples(&url_schema).unwrap();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0], "\"https://example.com\"");
+
+        let email_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                format: Some("email".to_string()),
+                ..Default::default()
+            })),
+        };
+
+        let examples = generator.extract_examples(&email_schema).unwrap();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0], "\"user@example.com\"");
+    }
+
+    #[test]
+    fn test_extract_examples_integer() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType {
+                min: Some(5),
+                ..Default::default()
+            })),
+        };
+
+        let examples = generator.extract_examples(&int_schema).unwrap();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0], "5");
+    }
+
+    #[test]
+    fn test_extract_examples_boolean() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let bool_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Boolean(Box::new(BooleanType::default())),
+        };
+
+        let examples = generator.extract_examples(&bool_schema).unwrap();
+        assert_eq!(examples.len(), 2);
+        assert_eq!(examples[0], "true");
+        assert_eq!(examples[1], "false");
+    }
+
+    #[test]
+    fn test_extract_examples_enum() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let enum_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Enum(Box::new(EnumType {
+                values: vec![
+                    LiteralValue::String("option1".to_string()),
+                    LiteralValue::String("option2".to_string()),
+                    LiteralValue::Int(42),
+                ],
+                default_index: None,
+                variants: None,
+            })),
+        };
+
+        let examples = generator.extract_examples(&enum_schema).unwrap();
+        assert_eq!(examples.len(), 3);
+        assert_eq!(examples[0], "\"option1\"");
+        assert_eq!(examples[1], "\"option2\"");
+        assert_eq!(examples[2], "42");
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_struct() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let struct_schema = Schema {
+            name: Some("TestStruct".to_string()),
+            description: Some("A test struct".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Struct(Box::new(StructType {
+                fields: BTreeMap::new(),
+                partial: false,
+                required: None,
+            })),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&struct_schema, "TestStruct")
+            .unwrap();
+        assert_eq!(pkl_type.name, "TestStruct");
+        assert_eq!(pkl_type.documentation, Some("A test struct".to_string()));
+        assert!(matches!(pkl_type.kind, PklTypeKind::Class));
+        assert!(!pkl_type.abstract_type);
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_enum() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let enum_schema = Schema {
+            name: Some("TestEnum".to_string()),
+            description: Some("A test enum".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Enum(Box::new(EnumType {
+                values: vec![
+                    LiteralValue::String("option1".to_string()),
+                    LiteralValue::String("option2".to_string()),
+                ],
+                default_index: None,
+                variants: None,
+            })),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&enum_schema, "TestEnum")
+            .unwrap();
+        assert_eq!(pkl_type.name, "TestEnum");
+        assert!(matches!(pkl_type.kind, PklTypeKind::TypeAlias));
+        assert_eq!(
+            pkl_type.enum_values,
+            Some("\"option1\" | \"option2\"".to_string())
+        );
+    }
+
+    #[test]
+    fn test_convert_field_to_property() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let field = SchemaField {
+            schema: Schema {
+                name: None,
+                description: Some("A test field".to_string()),
+                deprecated: Some("Use newField instead".to_string()),
+                nullable: false,
+                ty: SchemaType::String(Box::new(StringType::default())),
+            },
+            optional: true,
+            deprecated: None,
+            comment: None,
+            env_var: None,
+            hidden: false,
+            nullable: false,
+            read_only: false,
+            write_only: false,
+        };
+
+        let property = generator
+            .convert_field_to_property("testField", &field)
+            .unwrap();
+        assert_eq!(property.name, "testField");
+        assert_eq!(property.type_name, "String");
+        assert_eq!(property.documentation, Some("A test field".to_string()));
+        assert!(property.optional);
+        assert_eq!(
+            property.deprecated,
+            Some("Use newField instead".to_string())
+        );
+    }
+
+    #[test]
+    fn test_type_mappings_custom() {
+        let mut config = create_test_config();
+        config
+            .type_mappings
+            .insert("String".to_string(), "Text".to_string());
+        config
+            .type_mappings
+            .insert("Int".to_string(), "Number".to_string());
+
+        let generator = SchemaGenerator::new(config);
+
+        let string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType::default())),
+        };
+
+        assert_eq!(generator.get_pkl_type_name(&string_schema).unwrap(), "Text");
+
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType::default())),
+        };
+
+        assert_eq!(generator.get_pkl_type_name(&int_schema).unwrap(), "Number");
+    }
+
+    #[test]
+    fn test_convert_schemas_to_pkl_module() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let mut schemas = indexmap::IndexMap::new();
+        schemas.insert(
+            "TestConfig".to_string(),
+            Schema {
+                name: Some("TestConfig".to_string()),
+                description: Some("Test configuration".to_string()),
+                deprecated: None,
+                nullable: false,
+                ty: SchemaType::Struct(Box::new(StructType {
+                    fields: BTreeMap::new(),
+                    partial: false,
+                    required: None,
+                })),
+            },
+        );
+
+        let module = generator.convert_schemas_to_pkl(schemas, "Test").unwrap();
+        assert_eq!(module.name, "Test");
+        assert_eq!(
+            module.documentation,
+            Some("Moon test configuration schema".to_string())
+        );
+        assert_eq!(module.types.len(), 1);
+        assert_eq!(module.exports.len(), 1);
+
+        let export = &module.exports[0];
+        assert_eq!(export.name, "TestConfig");
+        assert_eq!(export.type_name, "TestConfig");
+    }
+
+    #[test]
+    fn test_complex_union_type_handling() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test complex union with multiple non-null types
+        let complex_union_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::String(Box::new(StringType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Boolean(Box::new(BooleanType::default())),
+                    }),
+                ],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        let type_name = generator.get_pkl_type_name(&complex_union_schema).unwrap();
+        assert_eq!(type_name, "String | Int | Boolean");
+    }
+
+    #[test]
+    fn test_complex_nullable_union_handling() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test complex nullable union: (String | Int) | Null
+        let complex_nullable_union = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::String(Box::new(StringType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Null,
+                    }),
+                ],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        let type_name = generator
+            .get_pkl_type_name(&complex_nullable_union)
+            .unwrap();
+        assert_eq!(type_name, "(String | Int)?");
+    }
+
+    #[test]
+    fn test_extract_constraints_comprehensive() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test string with all constraint types
+        let comprehensive_string_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::String(Box::new(StringType {
+                min_length: Some(3),
+                max_length: Some(50),
+                pattern: Some("^[a-zA-Z0-9_-]+$".to_string()),
+                enum_values: Some(vec![
+                    "dev".to_string(),
+                    "prod".to_string(),
+                    "test".to_string(),
+                ]),
+                ..Default::default()
+            })),
+        };
+
+        let constraints = generator
+            .extract_constraints(&comprehensive_string_schema)
+            .unwrap();
+        assert_eq!(constraints.len(), 4); // min_length, max_length, pattern, enum
+
+        // Verify constraint kinds
+        let constraint_kinds: Vec<&PklConstraintKind> =
+            constraints.iter().map(|c| &c.kind).collect();
+        assert!(constraint_kinds.contains(&&PklConstraintKind::Length));
+        assert!(constraint_kinds.contains(&&PklConstraintKind::Pattern));
+        assert!(constraint_kinds.contains(&&PklConstraintKind::Custom));
+    }
+
+    #[test]
+    fn test_extract_constraints_integer_multiple_of() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType {
+                min: Some(0),
+                max: Some(1000),
+                multiple_of: Some(5),
+                enum_values: Some(vec![5, 10, 15, 20]),
+                ..Default::default()
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&int_schema).unwrap();
+        assert_eq!(constraints.len(), 4); // min, max, multiple_of, enum
+
+        // Check multiple_of constraint
+        let multiple_constraint = constraints.iter().find(|c| c.value.contains("% 5 == 0"));
+        assert!(multiple_constraint.is_some());
+        assert_eq!(multiple_constraint.unwrap().kind, PklConstraintKind::Custom);
+    }
+
+    #[test]
+    fn test_extract_constraints_array_length_and_unique() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                min_length: Some(1),
+                max_length: Some(10),
+                unique: Some(true),
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        let constraints = generator.extract_constraints(&array_schema).unwrap();
+        assert_eq!(constraints.len(), 3); // min_length, max_length, unique
+
+        // Verify all expected constraints are present
+        let has_min_length = constraints.iter().any(|c| c.value == "length >= 1");
+        let has_max_length = constraints.iter().any(|c| c.value == "length <= 10");
+        let has_unique = constraints.iter().any(|c| c.value == "isDistinct");
+
+        assert!(has_min_length);
+        assert!(has_max_length);
+        assert!(has_unique);
+    }
+
+    #[test]
+    fn test_extract_examples_comprehensive_formats() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test all supported string formats
+        let formats_and_expected = vec![
+            ("url", "\"https://example.com\""),
+            ("email", "\"user@example.com\""),
+            ("uri", "\"https://api.example.com/v1\""),
+            ("uuid", "\"550e8400-e29b-41d4-a716-446655440000\""),
+            ("date", "\"2023-12-25\""),
+            ("time", "\"14:30:00\""),
+            ("datetime", "\"2023-12-25T14:30:00Z\""),
+            ("custom-format", "\"example-custom-format\""),
+        ];
+
+        for (format, expected) in formats_and_expected {
+            let schema = Schema {
+                name: None,
+                description: None,
+                deprecated: None,
+                nullable: false,
+                ty: SchemaType::String(Box::new(StringType {
+                    format: Some(format.to_string()),
+                    ..Default::default()
+                })),
+            };
+
+            let examples = generator.extract_examples(&schema).unwrap();
+            assert_eq!(examples.len(), 1);
+            assert_eq!(examples[0], expected, "Failed for format: {}", format);
+        }
+    }
+
+    #[test]
+    fn test_extract_examples_numeric_types() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test integer with constraints
+        let int_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Integer(Box::new(IntegerType {
+                min: Some(100),
+                max: Some(200),
+                enum_values: Some(vec![150, 175]),
+                ..Default::default()
+            })),
+        };
+
+        let examples = generator.extract_examples(&int_schema).unwrap();
+        assert_eq!(examples.len(), 2);
+        assert_eq!(examples[0], "150");
+        assert_eq!(examples[1], "175");
+
+        // Test float with constraints
+        let float_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Float(Box::new(FloatType {
+                min: Some(1.5),
+                max: Some(9.9),
+                enum_values: Some(vec![2.5, 5.0, 8.75]),
+                ..Default::default()
+            })),
+        };
+
+        let examples = generator.extract_examples(&float_schema).unwrap();
+        assert_eq!(examples.len(), 3);
+        assert_eq!(examples[0], "2.5");
+        assert_eq!(examples[1], "5");
+        assert_eq!(examples[2], "8.75");
+    }
+
+    #[test]
+    fn test_extract_examples_complex_enum_types() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let complex_enum_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Enum(Box::new(EnumType {
+                values: vec![
+                    LiteralValue::String("active".to_string()),
+                    LiteralValue::String("inactive".to_string()),
+                    LiteralValue::Int(1),
+                    LiteralValue::Int(0),
+                    LiteralValue::Bool(true),
+                    LiteralValue::Bool(false),
+                ],
+                default_index: None,
+                variants: None,
+            })),
+        };
+
+        let examples = generator.extract_examples(&complex_enum_schema).unwrap();
+        assert_eq!(examples.len(), 3); // Only take first 3
+
+        // Verify the first few examples are correctly formatted
+        assert_eq!(examples[0], "\"active\"");
+        assert_eq!(examples[1], "\"inactive\"");
+        assert_eq!(examples[2], "1");
+    }
+
+    #[test]
+    fn test_extract_examples_nested_array_and_object() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Test array with complex item types
+        let array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Object(Box::new(ObjectType {
+                        key_type: Box::new(Schema {
+                            name: None,
+                            description: None,
+                            deprecated: None,
+                            nullable: false,
+                            ty: SchemaType::String(Box::new(StringType::default())),
+                        }),
+                        value_type: Box::new(Schema {
+                            name: None,
+                            description: None,
+                            deprecated: None,
+                            nullable: false,
+                            ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                        }),
+                        min_length: None,
+                        max_length: None,
+                        required: None,
+                    })),
+                }),
+                min_length: None,
+                max_length: None,
+                unique: None,
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        let examples = generator.extract_examples(&array_schema).unwrap();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0], "new Listing<Mapping<String, Int>> {}");
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_empty_enum() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let empty_enum_schema = Schema {
+            name: Some("EmptyEnum".to_string()),
+            description: Some("An empty enum".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Enum(Box::new(EnumType {
+                values: vec![],
+                default_index: None,
+                variants: None,
+            })),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&empty_enum_schema, "EmptyEnum")
+            .unwrap();
+        assert_eq!(pkl_type.name, "EmptyEnum");
+        assert!(matches!(pkl_type.kind, PklTypeKind::Class));
+        assert!(pkl_type
+            .documentation
+            .as_ref()
+            .unwrap()
+            .contains("This is an empty enum type"));
+        assert!(pkl_type.enum_values.is_none());
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_union() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let union_schema = Schema {
+            name: Some("TestUnion".to_string()),
+            description: Some("A test union".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::String(Box::new(StringType::default())),
+                    }),
+                    Box::new(Schema {
+                        name: None,
+                        description: None,
+                        deprecated: None,
+                        nullable: false,
+                        ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                    }),
+                ],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&union_schema, "TestUnion")
+            .unwrap();
+        assert_eq!(pkl_type.name, "TestUnion");
+        assert!(matches!(pkl_type.kind, PklTypeKind::TypeAlias));
+        assert_eq!(pkl_type.enum_values, Some("String | Int".to_string()));
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_reference() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let reference_schema = Schema {
+            name: Some("TestReference".to_string()),
+            description: Some("A reference type".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Reference("ExternalType".to_string()),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&reference_schema, "TestReference")
+            .unwrap();
+        assert_eq!(pkl_type.name, "TestReference");
+        assert!(matches!(pkl_type.kind, PklTypeKind::Class));
+        assert_eq!(pkl_type.properties.len(), 0); // Reference types have no direct properties
+    }
+
+    #[test]
+    fn test_convert_schema_to_pkl_type_unknown_type() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let unknown_schema = Schema {
+            name: Some("UnknownType".to_string()),
+            description: Some("An unknown type".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Unknown,
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&unknown_schema, "UnknownType")
+            .unwrap();
+        assert_eq!(pkl_type.name, "UnknownType");
+        assert!(matches!(pkl_type.kind, PklTypeKind::Class));
+        assert_eq!(pkl_type.properties.len(), 0);
+    }
+
+    #[test]
+    fn test_convert_field_to_property_optional_deprecated() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let field = SchemaField {
+            schema: Schema {
+                name: None,
+                description: Some("A deprecated optional field".to_string()),
+                deprecated: Some("Schema-level deprecation".to_string()),
+                nullable: false,
+                ty: SchemaType::String(Box::new(StringType {
+                    min_length: Some(1),
+                    max_length: Some(100),
+                    ..Default::default()
+                })),
+            },
+            optional: true,
+            deprecated: Some("Field-level deprecation".to_string()),
+            comment: Some("Additional comment".to_string()),
+            env_var: Some("TEST_VAR".to_string()),
+            hidden: false,
+            nullable: true,
+            read_only: true,
+            write_only: false,
+        };
+
+        let property = generator
+            .convert_field_to_property("deprecatedField", &field)
+            .unwrap();
+        assert_eq!(property.name, "deprecatedField");
+        assert_eq!(property.type_name, "String");
+        assert!(property.optional);
+        // Field-level deprecation should take precedence
+        assert_eq!(
+            property.deprecated,
+            Some("Field-level deprecation".to_string())
+        );
+        assert!(property.constraints.len() > 0); // Should have length constraints
+        assert!(property.examples.len() > 0); // Should have examples
+    }
+
+    #[test]
+    fn test_convert_schemas_to_pkl_module_multiple_schemas() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let mut schemas = indexmap::IndexMap::new();
+
+        // Add main config schema
+        schemas.insert(
+            "WorkspaceConfig".to_string(),
+            Schema {
+                name: Some("WorkspaceConfig".to_string()),
+                description: Some("Main workspace configuration".to_string()),
+                deprecated: None,
+                nullable: false,
+                ty: SchemaType::Struct(Box::new(StructType {
+                    fields: BTreeMap::new(),
+                    partial: false,
+                    required: None,
+                })),
+            },
+        );
+
+        // Add helper type schema
+        schemas.insert(
+            "TaskType".to_string(),
+            Schema {
+                name: Some("TaskType".to_string()),
+                description: Some("Task type enumeration".to_string()),
+                deprecated: None,
+                nullable: false,
+                ty: SchemaType::Enum(Box::new(EnumType {
+                    values: vec![
+                        LiteralValue::String("build".to_string()),
+                        LiteralValue::String("test".to_string()),
+                    ],
+                    default_index: None,
+                    variants: None,
+                })),
+            },
+        );
+
+        // Add deprecated schema
+        schemas.insert(
+            "LegacyConfig".to_string(),
+            Schema {
+                name: Some("LegacyConfig".to_string()),
+                description: Some("Legacy configuration".to_string()),
+                deprecated: Some("Use WorkspaceConfig instead".to_string()),
+                nullable: false,
+                ty: SchemaType::Struct(Box::new(StructType {
+                    fields: BTreeMap::new(),
+                    partial: false,
+                    required: None,
+                })),
+            },
+        );
+
+        let module = generator
+            .convert_schemas_to_pkl(schemas, "Workspace")
+            .unwrap();
+        assert_eq!(module.name, "Workspace");
+        assert_eq!(
+            module.documentation,
+            Some("Moon workspace configuration schema".to_string())
+        );
+        assert_eq!(module.types.len(), 3);
+
+        // Should export the main config
+        assert_eq!(module.exports.len(), 1);
+        assert_eq!(module.exports[0].name, "WorkspaceConfig");
+        assert_eq!(module.exports[0].type_name, "WorkspaceConfig");
+
+        // Verify all types are present
+        let type_names: Vec<&String> = module.types.iter().map(|t| &t.name).collect();
+        assert!(type_names.contains(&&"WorkspaceConfig".to_string()));
+        assert!(type_names.contains(&&"TaskType".to_string()));
+        assert!(type_names.contains(&&"LegacyConfig".to_string()));
+    }
+
+    #[test]
+    fn test_deprecated_property_filtering() {
+        let mut config = create_test_config();
+        config.include_deprecated = false;
+        let generator = SchemaGenerator::new(config);
+
+        let field = SchemaField {
+            schema: Schema {
+                name: None,
+                description: Some("A deprecated field".to_string()),
+                deprecated: Some("This field is deprecated".to_string()),
+                nullable: false,
+                ty: SchemaType::String(Box::new(StringType::default())),
+            },
+            optional: false,
+            deprecated: None,
+            comment: None,
+            env_var: None,
+            hidden: false,
+            nullable: false,
+            read_only: false,
+            write_only: false,
+        };
+
+        let property = generator
+            .convert_field_to_property("deprecatedField", &field)
+            .unwrap();
+        // Property should still be created but have deprecated flag
+        assert_eq!(property.name, "deprecatedField");
+        assert_eq!(
+            property.deprecated,
+            Some("This field is deprecated".to_string())
+        );
+    }
+
+    #[test]
+    fn test_edge_case_union_only_null() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let only_null_union = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Null,
+                })],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        let type_name = generator.get_pkl_type_name(&only_null_union).unwrap();
+        assert_eq!(type_name, "Null");
+    }
+
+    #[test]
+    fn test_edge_case_empty_union() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let empty_union = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Union(Box::new(UnionType {
+                variants_types: vec![],
+                default_index: None,
+                operator: UnionOperator::AnyOf,
+                partial: false,
+            })),
+        };
+
+        let type_name = generator.get_pkl_type_name(&empty_union).unwrap();
+        assert_eq!(type_name, "Any"); // Should fallback to Any for empty unions
+    }
+
+    #[test]
+    fn test_edge_case_nested_arrays() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Array of arrays of strings
+        let nested_array_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Array(Box::new(ArrayType {
+                items_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Array(Box::new(ArrayType {
+                        items_type: Box::new(Schema {
+                            name: None,
+                            description: None,
+                            deprecated: None,
+                            nullable: false,
+                            ty: SchemaType::String(Box::new(StringType::default())),
+                        }),
+                        min_length: None,
+                        max_length: None,
+                        unique: None,
+                        contains: None,
+                        max_contains: None,
+                        min_contains: None,
+                    })),
+                }),
+                min_length: None,
+                max_length: None,
+                unique: None,
+                contains: None,
+                max_contains: None,
+                min_contains: None,
+            })),
+        };
+
+        let type_name = generator.get_pkl_type_name(&nested_array_schema).unwrap();
+        assert_eq!(type_name, "Listing<Listing<String>>");
+    }
+
+    #[test]
+    fn test_edge_case_complex_nested_objects() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        // Mapping<String, Mapping<String, Int>>
+        let nested_object_schema = Schema {
+            name: None,
+            description: None,
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Object(Box::new(ObjectType {
+                key_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType::default())),
+                }),
+                value_type: Box::new(Schema {
+                    name: None,
+                    description: None,
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Object(Box::new(ObjectType {
+                        key_type: Box::new(Schema {
+                            name: None,
+                            description: None,
+                            deprecated: None,
+                            nullable: false,
+                            ty: SchemaType::String(Box::new(StringType::default())),
+                        }),
+                        value_type: Box::new(Schema {
+                            name: None,
+                            description: None,
+                            deprecated: None,
+                            nullable: false,
+                            ty: SchemaType::Integer(Box::new(IntegerType::default())),
+                        }),
+                        min_length: None,
+                        max_length: None,
+                        required: None,
+                    })),
+                }),
+                min_length: None,
+                max_length: None,
+                required: None,
+            })),
+        };
+
+        let type_name = generator.get_pkl_type_name(&nested_object_schema).unwrap();
+        assert_eq!(type_name, "Mapping<String, Mapping<String, Int>>");
+    }
+
+    #[test]
+    fn test_schema_conversion_with_struct_fields() {
+        let generator = SchemaGenerator::new(create_test_config());
+
+        let mut fields = BTreeMap::new();
+        fields.insert(
+            "name".to_string(),
+            Box::new(SchemaField {
+                schema: Schema {
+                    name: None,
+                    description: Some("The name field".to_string()),
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::String(Box::new(StringType {
+                        min_length: Some(1),
+                        max_length: Some(50),
+                        ..Default::default()
+                    })),
+                },
+                optional: false,
+                deprecated: None,
+                comment: None,
+                env_var: None,
+                hidden: false,
+                nullable: false,
+                read_only: false,
+                write_only: false,
+            }),
+        );
+
+        fields.insert(
+            "age".to_string(),
+            Box::new(SchemaField {
+                schema: Schema {
+                    name: None,
+                    description: Some("The age field".to_string()),
+                    deprecated: None,
+                    nullable: false,
+                    ty: SchemaType::Integer(Box::new(IntegerType {
+                        min: Some(0),
+                        max: Some(150),
+                        ..Default::default()
+                    })),
+                },
+                optional: true,
+                deprecated: None,
+                comment: None,
+                env_var: None,
+                hidden: false,
+                nullable: false,
+                read_only: false,
+                write_only: false,
+            }),
+        );
+
+        let struct_schema = Schema {
+            name: Some("Person".to_string()),
+            description: Some("A person entity".to_string()),
+            deprecated: None,
+            nullable: false,
+            ty: SchemaType::Struct(Box::new(StructType {
+                fields,
+                partial: false,
+                required: None,
+            })),
+        };
+
+        let pkl_type = generator
+            .convert_schema_to_pkl_type(&struct_schema, "Person")
+            .unwrap();
+        assert_eq!(pkl_type.name, "Person");
+        assert_eq!(pkl_type.properties.len(), 2);
+
+        // Check name property
+        let name_prop = pkl_type
+            .properties
+            .iter()
+            .find(|p| p.name == "name")
+            .unwrap();
+        assert_eq!(name_prop.type_name, "String");
+        assert!(!name_prop.optional);
+        assert!(name_prop.constraints.len() > 0); // Should have length constraints
+
+        // Check age property
+        let age_prop = pkl_type
+            .properties
+            .iter()
+            .find(|p| p.name == "age")
+            .unwrap();
+        assert_eq!(age_prop.type_name, "Int");
+        assert!(age_prop.optional);
+        assert!(age_prop.constraints.len() > 0); // Should have min/max constraints
+    }
 }

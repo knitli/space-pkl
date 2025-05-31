@@ -44,8 +44,9 @@ space-pkl generate
 ```
 
 This creates a `pkl-schemas/` directory with:
+
 - `workspace.pkl` - Workspace configuration schema
-- `project.pkl` - Project configuration schema  
+- `project.pkl` - Project configuration schema
 - `template.pkl` - Template configuration schema
 - `toolchain.pkl` - Toolchain configuration schema
 - `tasks.pkl` - Tasks configuration schema
@@ -74,11 +75,11 @@ config: workspace.WorkspaceConfig = new {
       "shared-lib" = "./libs/shared"
     }
   }
-  
+
   experiments = new {
     actionPipelineV2 = true
   }
-  
+
   hasher = new {
     optimization = "Performance"
     walkStrategy = "Vcs"
@@ -100,7 +101,7 @@ Generate Pkl schemas for Moon configurations.
 **Options:**
 - `--output, -o <DIR>` - Output directory (default: `./pkl-schemas`)
 - `--no-comments` - Exclude comments from generated schemas
-- `--no-examples` - Exclude examples from generated schemas  
+- `--no-examples` - Exclude examples from generated schemas
 - `--header <TEXT>` - Custom header text
 - `--footer <TEXT>` - Custom footer text
 - `--module-name <NAME>` - Module name for schemas (default: `moon`)
@@ -150,12 +151,12 @@ fn main() -> space_pkl::Result<()> {
     // Generate workspace schema
     let schema = generate_workspace_schema()?;
     println!("{}", schema);
-    
+
     // Or use the generator directly
     let config = GeneratorConfig::default();
     let generator = SchemaGenerator::new(config);
     generator.generate_all()?;
-    
+
     Ok(())
 }
 ```
@@ -175,16 +176,16 @@ fn main() -> space_pkl::Result<()> {
         header: Some("// Custom header\n".to_string()),
         ..Default::default()
     };
-    
+
     let generator = SchemaGenerator::new(config);
-    
+
     // Generate specific schemas
     let workspace_schema = generator.generate_workspace_schema()?;
     let project_schema = generator.generate_project_schema()?;
-    
+
     // Or generate all
     generator.generate_all()?;
-    
+
     Ok(())
 }
 ```
@@ -200,13 +201,13 @@ The generated schemas follow Pkl conventions and include:
 class WorkspaceConfig {
   /// Configure code ownership rules for generating a CODEOWNERS file
   codeowners: (CodeownersConfig)?
-  
-  /// Configure boundaries and constraints between projects  
+
+  /// Configure boundaries and constraints between projects
   constraints: (ConstraintsConfig)?
-  
+
   /// Configure all projects within the workspace
   projects: WorkspaceProjects
-  
+
   // ... more fields
 }
 ```
@@ -217,10 +218,10 @@ class WorkspaceConfig {
 class HasherConfig {
   /// The optimization to use when hashing
   optimization: ("Accuracy"|"Performance") = "Accuracy"
-  
+
   /// File paths that match a configured glob pattern
   ignorePatterns: Listing<String>
-  
+
   /// Logs a warning when a task has configured an explicit file path input
   warnOnMissingInputs: Boolean = true
 }

@@ -3,7 +3,7 @@
 use space_pkl::{
     config::GeneratorConfig,
     templates::TemplateEngine,
-    types::{PklConstraint, PklExport, PklImport, PklModule, PklProperty, PklType, PklTypeKind},
+    types::{PklModule, PklProperty, PklType, PklTypeKind},
     Result,
 };
 

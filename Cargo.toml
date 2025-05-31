@@ -2,13 +2,13 @@
 name = "space-pkl"
 version = "0.1.0"
 edition = "2021"
-description = "Pkl schema and template generation for Moon workspace configurations"
+description = "Generate type safe `pkl` configuration schemas/templates for your Moon workspace. Use as templates for configs, or to import and validate types for your Moon configs."
 license = "MIT"
 repository = "https://github.com/knitli/space-pkl"
 homepage = "https://github.com/knitli/space-pkl"
 documentation = "https://docs.rs/space-pkl"
 readme = "README.md"
-keywords = ["pkl", "moon", "schema", "configuration", "template"]
+keywords = ["pkl", "moon", "schema", "configuration", "config", "template", "generator", "moonrepo", "workspace", "cli", "tooling", "devtools"]
 categories = ["development-tools", "template-engine"]
 authors = ["Adam Poulemanos <adam@knit.li>"]
 
@@ -61,7 +61,7 @@ handlebars = "6.3.2"
 indexmap = "2.0"
 
 # Optional: for better error reporting
-color-eyre = { version = "0.6", optional = true }
+color-eyre = { version = "0.6.5", optional = true }
 
 [dev-dependencies]
 tempfile = "3.8"

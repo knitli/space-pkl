@@ -21,6 +21,7 @@ debug-output/
 # generated schemas. We will keep the complete pkl package, but not the artifacts
 pkl-schemas/
 test-output/
+test-schemas/
 
 
 target/debug/

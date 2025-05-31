@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_DIR="$PROJECT_ROOT/tests/pkl"
 REPORTS_DIR="$PROJECT_ROOT/target/pkl-test-reports"
+SCHEMA_DIR="$PROJECT_ROOT/pkl-schemas"
 
 # Colors for output
 RED='\033[0;31m'
@@ -44,6 +45,20 @@ check_pkl_availability() {
 setup_reports_dir() {
   mkdir -p "$REPORTS_DIR"
   log_info "Test reports will be saved to: $REPORTS_DIR"
+}
+
+setup_schemas() {
+
+    if [ -f "$PROJECT_ROOT/target/release/space-pkl" ]; then
+      cli="$PROJECT_ROOT/target/release/space-pkl"
+        local cli
+    elif [ -f "$PROJECT_ROOT/target/debug/space-pkl" ]; then
+      cli="$PROJECT_ROOT/target/debug/space-pkl"
+    else
+      cli="cargo run -- "
+    fi
+    "$cli" generate --output "$SCHEMA_DIR" || exit 1
+    log_info "Generated PKL schemas in: $SCHEMA_DIR"
 }
 
 # Run tests in a specific directory
@@ -115,6 +130,11 @@ main() {
   log_info "Starting PKL tests for space-pkl..."
 
   check_pkl_availability
+
+  if [[ ! -d "$SCHEMA_DIR" ]]; then
+    setup_schemas
+  fi
+
   setup_reports_dir
 
   # Change to project root for relative imports to work
@@ -122,10 +142,12 @@ main() {
 
   if run_all_tests; then
     log_info "All PKL tests passed! ✓"
+    rm -rf "$SCHEMA_DIR"  # Clean up schemas after tests
     exit 0
   else
     log_error "Some PKL tests failed! ✗"
     log_error "Check test reports in: $REPORTS_DIR"
+    log_error "Schemas used for tests are in: $SCHEMA_DIR"
     exit 1
   fi
 }
