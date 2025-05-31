@@ -234,13 +234,13 @@ impl SchemaGenerator {
             SchemaType::Struct(struct_type) => {
                 for (field_name, field) in &struct_type.fields {
                     let property = self.convert_field_to_property(field_name, field)?;
-                    
+
                     // Filter deprecated properties based on configuration
                     if property.deprecated.is_some() && !self.config.include_deprecated {
                         debug!("Skipping deprecated property '{}' in '{}'", field_name, name);
                         continue;
                     }
-                    
+
                     pkl_type.properties.push(property);
                 }
                 debug!(
