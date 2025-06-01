@@ -1,14 +1,14 @@
-//! PKL Type Definitions Module
+//! Pkl Type Definitions Module
 //!
-//! This module provides comprehensive type definitions for representing PKL (Pkl Configuration Language)
+//! This module provides comprehensive type definitions for representing Pkl (Pkl Configuration Language)
 //! schema structures in Rust. It serves as the core type system for translating Moon configuration
-//! types into PKL schema definitions with full support for documentation, validation, and templates.
+//! types into Pkl schema definitions with full support for documentation, validation, and templates.
 //!
 //! # Overview
 //!
-//! The type system is built around a hierarchical structure that mirrors PKL's type system:
+//! The type system is built around a hierarchical structure that mirrors Pkl's type system:
 //! - **Modules** contain collections of types, imports, and exports
-//! - **Types** define PKL classes, type aliases, unions, and modules
+//! - **Types** define Pkl classes, type aliases, unions, and modules
 //! - **Properties** represent fields within types with validation and documentation
 //! - **Constraints** provide runtime validation rules for properties
 //! - **Templates** enable customizable code generation contexts
@@ -29,15 +29,15 @@
 //! └── constraints: Vec<PklConstraint> # Validation rules
 //!
 //! PklProperty
-//! ├── type_name: String              # PKL type reference
+//! ├── type_name: String              # Pkl type reference
 //! ├── constraints: Vec<PklConstraint> # Validation constraints
 //! ├── examples: Vec<String>          # Usage examples
 //! └── documentation: Option<String>  # Inline documentation
 //! ```
 //!
-//! # Generated PKL Structure
+//! # Generated Pkl Structure
 //!
-//! The types in this module generate PKL schemas with the following structure:
+//! The types in this module generate Pkl schemas with the following structure:
 //!
 //! ```pkl
 //! /// Module documentation
@@ -65,7 +65,7 @@
 //!
 //! # Features
 //!
-//! - **Type Safety**: Full type information preserved from Rust to PKL
+//! - **Type Safety**: Full type information preserved from Rust to Pkl
 //! - **Documentation**: Rich documentation with examples and constraints
 //! - **Validation**: Constraint-based validation with custom error messages
 //! - **Modularity**: Import/export system for schema composition
@@ -134,9 +134,9 @@
 //!
 //! # Type Mapping
 //!
-//! This module supports comprehensive type mapping from Rust to PKL:
+//! This module supports comprehensive type mapping from Rust to Pkl:
 //!
-//! | Rust Type | PKL Type | Description |
+//! | Rust Type | Pkl Type | Description |
 //! |-----------|----------|-------------|
 //! | `String` | `String` | Text values |
 //! | `bool` | `Boolean` | True/false values |
@@ -156,25 +156,25 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Represents a complete PKL module definition.
+/// Represents a complete Pkl module definition.
 ///
-/// `PklModule` is the top-level container for PKL schema definitions, encapsulating
-/// all the components needed to generate a complete PKL module file. It serves as
+/// `PklModule` is the top-level container for Pkl schema definitions, encapsulating
+/// all the components needed to generate a complete Pkl module file. It serves as
 /// the primary data structure for organizing types, managing dependencies, and
 /// controlling the public API surface of generated schemas.
 ///
 /// # Structure
 ///
-/// A PKL module contains several key components:
+/// A Pkl module contains several key components:
 /// - **Module Metadata**: Name and documentation
 /// - **Dependency Management**: Import declarations for external modules
 /// - **Public API**: Export declarations for types available to other modules
 /// - **Type Definitions**: Classes, type aliases, unions, and nested modules
 /// - **Module Properties**: Global configuration values and constants
 ///
-/// # Generated PKL Output
+/// # Generated Pkl Output
 ///
-/// A `PklModule` generates PKL code with the following structure:
+/// A `PklModule` generates Pkl code with the following structure:
 /// ```pkl
 /// /// Module documentation appears here
 /// module ModuleName
@@ -306,17 +306,26 @@ use std::collections::HashMap;
 /// `PklModule` implements `Serialize` and `Deserialize` for JSON/YAML persistence:
 /// ```rust
 /// # use space_pkl::types::*;
-/// let module = PklModule { /* ... */ };
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let module = PklModule {
+///     name: "TestModule".to_string(),
+///     documentation: None,
+///     imports: vec![],
+///     exports: vec![],
+///     types: vec![],
+///     properties: vec![],
+/// };
 /// let json = serde_json::to_string(&module)?;
 /// let restored: PklModule = serde_json::from_str(&json)?;
-/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PklModule {
-    /// The name of the PKL module.
+    /// The name of the Pkl module.
     ///
-    /// This appears in the `module` declaration at the top of generated PKL files
-    /// and affects how the module can be imported by other PKL files.
+    /// This appears in the `module` declaration at the top of generated Pkl files
+    /// and affects how the module can be imported by other Pkl files.
     ///
     /// # Naming Conventions
     /// - Use PascalCase for module names (e.g., "WorkspaceConfig", "DatabaseSettings")
@@ -331,7 +340,7 @@ pub struct PklModule {
 
     /// Optional documentation for the module.
     ///
-    /// When present, this generates PKL doc comments at the top of the module file,
+    /// When present, this generates Pkl doc comments at the top of the module file,
     /// providing context and usage information for the entire module.
     ///
     /// # Format
@@ -341,7 +350,7 @@ pub struct PklModule {
     /// - Usage examples
     /// - Links to related modules
     ///
-    /// # Example PKL Output
+    /// # Example Pkl Output
     /// ```pkl
     /// /// Application workspace configuration
     /// ///
@@ -361,7 +370,7 @@ pub struct PklModule {
     /// - **Direct imports**: `import "module.pkl"`
     /// - **Glob imports**: `import "package/*"`
     ///
-    /// # Example PKL Output
+    /// # Example Pkl Output
     /// ```pkl
     /// import "pkl:base"
     /// import "workspace.pkl" as workspace
@@ -380,7 +389,7 @@ pub struct PklModule {
     /// - Keep internal/helper types private
     /// - Use descriptive export names
     ///
-    /// # Example PKL Output
+    /// # Example Pkl Output
     /// ```pkl
     /// // At the end of the module file
     /// WorkspaceConfig     // Exported type
@@ -400,7 +409,7 @@ pub struct PklModule {
     /// 2. Supporting/utility types second
     /// 3. Internal/private types last
     ///
-    /// # Example PKL Output
+    /// # Example Pkl Output
     /// ```pkl
     /// class WorkspaceConfig {
     ///   projects: ProjectsConfig?
@@ -415,7 +424,7 @@ pub struct PklModule {
     ///
     /// Defines global values, constants, and default configurations that are
     /// available throughout the module. These become module-level properties
-    /// in the generated PKL.
+    /// in the generated Pkl.
     ///
     /// # Use Cases
     /// - Default configuration values
@@ -423,7 +432,7 @@ pub struct PklModule {
     /// - Computed properties
     /// - Validation helpers
     ///
-    /// # Example PKL Output
+    /// # Example Pkl Output
     /// ```pkl
     /// // Module-level properties
     /// defaultTimeout: Duration = 30.s
@@ -433,7 +442,7 @@ pub struct PklModule {
     pub properties: Vec<PklProperty>,
 }
 
-/// Represents a PKL import statement for module dependencies.
+/// Represents a Pkl import statement for module dependencies.
 ///
 /// `PklImport` defines how external modules and their types are made available
 /// within the current module. It supports various import patterns including
@@ -463,7 +472,7 @@ pub struct PklModule {
 /// ```
 ///
 /// ## Standard Library Import
-/// Imports from PKL standard library:
+/// Imports from Pkl standard library:
 /// ```pkl
 /// import "pkl:base"
 /// import "pkl:json"
@@ -532,8 +541,8 @@ pub struct PklModule {
 ///
 /// # Import Resolution
 ///
-/// PKL resolves imports in the following order:
-/// 1. **Standard Library**: `pkl:*` imports resolve to PKL built-in modules
+/// Pkl resolves imports in the following order:
+/// 1. **Standard Library**: `pkl:*` imports resolve to Pkl built-in modules
 /// 2. **Relative Paths**: `./module.pkl` or `../other.pkl` relative to current file
 /// 3. **Absolute Paths**: `/path/to/module.pkl` from filesystem root
 /// 4. **Package Paths**: `package/module.pkl` from configured package directories
@@ -542,6 +551,8 @@ pub struct PklModule {
 ///
 /// ## Import Organization
 /// ```rust
+/// use space_pkl::types::PklImport;
+///
 /// // Order imports by type:
 /// // 1. Standard library imports
 /// // 2. External package imports
@@ -612,8 +623,8 @@ pub struct PklImport {
     ///
     /// # Glob Patterns
     /// - `"utils/*"` - All immediate children of utils directory
-    /// - `"configs/**/*.pkl"` - All PKL files recursively under configs
-    /// - `"types/*.pkl"` - All PKL files directly in types directory
+    /// - `"configs/**/*.pkl"` - All Pkl files recursively under configs
+    /// - `"types/*.pkl"` - All Pkl files directly in types directory
     ///
     /// # Example
     /// ```rust
@@ -632,7 +643,7 @@ pub struct PklImport {
     pub glob: bool,
 }
 
-/// Represents a PKL export declaration for module's public API.
+/// Represents a Pkl export declaration for module's public API.
 ///
 /// `PklExport` defines which types and values are publicly accessible when
 /// this module is imported by other modules. Only exported items can be
@@ -640,7 +651,7 @@ pub struct PklImport {
 ///
 /// # Export Mechanism
 ///
-/// PKL exports work by listing type names at the end of a module file:
+/// Pkl exports work by listing type names at the end of a module file:
 /// ```pkl
 /// module MyModule
 ///
@@ -702,6 +713,8 @@ pub struct PklImport {
 ///
 /// ## Explicit API Design
 /// ```rust
+/// use space_pkl::types::PklExport;
+///
 /// // Export only essential types for clean API
 /// let public_api = vec![
 ///     PklExport {
@@ -718,6 +731,8 @@ pub struct PklImport {
 ///
 /// ## Re-exporting with Aliases
 /// ```rust
+/// use space_pkl::types::PklExport;
+///
 /// // Provide simplified names for complex internal types
 /// let simplified_exports = vec![
 ///     PklExport {
@@ -754,6 +769,8 @@ pub struct PklImport {
 ///
 /// ## Versioned APIs
 /// ```rust
+/// use space_pkl::types::PklExport;
+///
 /// // Export different versions of the same concept
 /// let versioned_exports = vec![
 ///     PklExport {
@@ -849,24 +866,24 @@ pub struct PklExport {
     pub type_name: String,
 }
 
-/// Represents a PKL type definition (class, type alias, union, or module).
+/// Represents a Pkl type definition (class, type alias, union, or module).
 ///
-/// `PklType` is the core abstraction for representing PKL type definitions,
-/// supporting the full range of PKL's type system including classes, type aliases,
+/// `PklType` is the core abstraction for representing Pkl type definitions,
+/// supporting the full range of Pkl's type system including classes, type aliases,
 /// union types, and nested modules. It provides comprehensive support for
 /// inheritance, validation, deprecation, and rich documentation.
 ///
-/// # PKL Type System
+/// # Pkl Type System
 ///
-/// PKL supports several kinds of type definitions:
+/// Pkl supports several kinds of type definitions:
 /// - **Classes**: Object types with properties and methods
 /// - **Type Aliases**: Named references to existing types or unions
 /// - **Unions**: Types that can be one of several alternatives
 /// - **Modules**: Nested module definitions
 ///
-/// # Generated PKL Output
+/// # Generated Pkl Output
 ///
-/// Different type kinds generate different PKL syntax:
+/// Different type kinds generate different Pkl syntax:
 ///
 /// ## Class Type
 /// ```pkl
@@ -1003,7 +1020,7 @@ pub struct PklExport {
 ///
 /// # Inheritance
 ///
-/// PKL supports single inheritance through the `extends` field:
+/// Pkl supports single inheritance through the `extends` field:
 /// ```pkl
 /// class BaseConfig {
 ///   version: String = "1.0"
@@ -1054,7 +1071,7 @@ pub struct PklExport {
 pub struct PklType {
     /// The name of the type.
     ///
-    /// This becomes the type identifier in PKL and must be unique within
+    /// This becomes the type identifier in Pkl and must be unique within
     /// the containing module. Used in type references, inheritance declarations,
     /// and export statements.
     ///
@@ -1072,7 +1089,7 @@ pub struct PklType {
 
     /// Optional documentation for the type.
     ///
-    /// When present, generates PKL doc comments above the type definition.
+    /// When present, generates Pkl doc comments above the type definition.
     /// Should provide clear description of the type's purpose, usage examples,
     /// and any important constraints or relationships.
     ///
@@ -1097,9 +1114,9 @@ pub struct PklType {
     /// ```
     pub documentation: Option<String>,
 
-    /// The kind of PKL type this represents.
+    /// The kind of Pkl type this represents.
     ///
-    /// Determines how the type is rendered in PKL syntax:
+    /// Determines how the type is rendered in Pkl syntax:
     /// - `Class` → `class TypeName { ... }`
     /// - `TypeAlias` → `typealias TypeName = ...`
     /// - `Union` → `typealias TypeName = "a" | "b" | "c"`
@@ -1139,7 +1156,7 @@ pub struct PklType {
     /// Base types that this type extends (inheritance).
     ///
     /// For class types, specifies the parent class(es) in the inheritance chain.
-    /// PKL supports single inheritance, so this typically contains at most one
+    /// Pkl supports single inheritance, so this typically contains at most one
     /// element, but multiple entries are preserved for future extension.
     ///
     /// # Inheritance Example
@@ -1200,7 +1217,7 @@ pub struct PklType {
     /// Optional deprecation notice for this type.
     ///
     /// When present, marks the type as deprecated and provides guidance for
-    /// migration. Generates deprecation warnings in PKL and documentation.
+    /// migration. Generates deprecation warnings in Pkl and documentation.
     ///
     /// # Deprecation Format
     /// Should include:
@@ -1224,7 +1241,7 @@ pub struct PklType {
     /// };
     /// ```
     ///
-    /// # Generated PKL Output
+    /// # Generated Pkl Output
     /// ```pkl
     /// @Deprecated { "Use DatabaseConfigV2 instead. This version lacks SSL support." }
     /// class DatabaseConfig {
@@ -1234,23 +1251,23 @@ pub struct PklType {
     pub deprecated: Option<String>,
 }
 
-/// Represents the different kinds of type definitions in PKL.
+/// Represents the different kinds of type definitions in Pkl.
 ///
 /// `PklTypeKind` categorizes the various type definition syntaxes supported
-/// by PKL, each with distinct semantics and generated code patterns. This
-/// enum drives the code generation logic to produce appropriate PKL syntax
+/// by Pkl, each with distinct semantics and generated code patterns. This
+/// enum drives the code generation logic to produce appropriate Pkl syntax
 /// for each type category.
 ///
 /// # Type Kind Overview
 ///
-/// | Kind | PKL Syntax | Use Case | Example |
+/// | Kind | Pkl Syntax | Use Case | Example |
 /// |------|------------|----------|---------|
 /// | `Class` | `class Name { ... }` | Object types with properties | Configuration objects |
 /// | `TypeAlias` | `typealias Name = Type` | Named type references | `UserId = String` |
 /// | `Union` | `typealias Name = A \| B` | Multiple choice types | `Status = "ok" \| "error"` |
 /// | `Module` | `module Name { ... }` | Nested modules | Sub-configuration namespaces |
 ///
-/// # Generated PKL Examples
+/// # Generated Pkl Examples
 ///
 /// ## Class Type
 /// ```pkl
@@ -1364,9 +1381,9 @@ pub struct PklType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase")]
 pub enum PklTypeKind {
-    /// A PKL class type with properties and potential inheritance.
+    /// A Pkl class type with properties and potential inheritance.
     ///
-    /// Classes are the primary way to define structured object types in PKL.
+    /// Classes are the primary way to define structured object types in Pkl.
     /// They can contain properties, extend other classes, and be marked as abstract.
     ///
     /// # Generated Syntax
@@ -1394,7 +1411,7 @@ pub enum PklTypeKind {
     /// - Types that benefit from inheritance hierarchies
     Class,
 
-    /// A PKL type alias that provides a name for an existing type.
+    /// A Pkl type alias that provides a name for an existing type.
     ///
     /// Type aliases create named references to existing types, often with
     /// additional constraints or for semantic clarity. They don't create
@@ -1419,7 +1436,7 @@ pub enum PklTypeKind {
     /// - Creating domain-specific type vocabularies
     TypeAlias,
 
-    /// A PKL union type that can be one of several alternatives.
+    /// A Pkl union type that can be one of several alternatives.
     ///
     /// Union types allow values to be one of multiple specified types or values.
     /// They're commonly used for enumerations, tagged unions, and polymorphic data.
@@ -1443,7 +1460,7 @@ pub enum PklTypeKind {
     /// - State machine states
     Union,
 
-    /// A PKL nested module definition.
+    /// A Pkl nested module definition.
     ///
     /// Modules provide namespacing and organization for related types and values.
     /// They can contain their own type definitions, imports, and exports.
@@ -1468,24 +1485,24 @@ pub enum PklTypeKind {
     Module,
 }
 
-/// Represents a property/field within a PKL type or module.
+/// Represents a property/field within a Pkl type or module.
 ///
-/// `PklProperty` defines individual properties within PKL classes, modules, or other
+/// `PklProperty` defines individual properties within Pkl classes, modules, or other
 /// container types. It provides comprehensive support for type information, validation
 /// constraints, documentation, default values, and usage examples.
 ///
 /// # Property Structure
 ///
-/// PKL properties have rich metadata that controls their behavior:
-/// - **Type Information**: PKL type name and optionality
+/// Pkl properties have rich metadata that controls their behavior:
+/// - **Type Information**: Pkl type name and optionality
 /// - **Documentation**: Inline comments and usage examples
 /// - **Validation**: Constraints and validation rules
 /// - **Defaults**: Default values and initialization
 /// - **Lifecycle**: Deprecation notices and migration paths
 ///
-/// # Generated PKL Syntax
+/// # Generated Pkl Syntax
 ///
-/// Properties generate different PKL syntax based on their configuration:
+/// Properties generate different Pkl syntax based on their configuration:
 ///
 /// ## Required Property
 /// ```pkl
@@ -1615,7 +1632,7 @@ pub enum PklTypeKind {
 ///
 /// # Property Types
 ///
-/// Properties can reference various PKL types:
+/// Properties can reference various Pkl types:
 ///
 /// ## Primitive Types
 /// ```rust
@@ -1688,9 +1705,9 @@ pub enum PklTypeKind {
 pub struct PklProperty {
     /// The name of the property.
     ///
-    /// This becomes the property identifier in PKL and must be unique within
+    /// This becomes the property identifier in Pkl and must be unique within
     /// the containing type. Should follow camelCase naming conventions for
-    /// consistency with PKL style guidelines.
+    /// consistency with Pkl style guidelines.
     ///
     /// # Naming Guidelines
     /// - Use camelCase (e.g., "databaseHost", "maxRetries", "isEnabled")
@@ -1707,7 +1724,7 @@ pub struct PklProperty {
 
     /// The type name of the property.
     ///
-    /// Specifies the PKL type for this property, which can be:
+    /// Specifies the Pkl type for this property, which can be:
     /// - Primitive types: `String`, `Int`, `Boolean`, `Float`
     /// - Collection types: `List<T>`, `Set<T>`, `Map<K, V>`
     /// - Custom types: User-defined classes and type aliases
@@ -1715,7 +1732,7 @@ pub struct PklProperty {
     /// - Optional types: `T?` for nullable properties
     ///
     /// # Type Mapping
-    /// Common Rust-to-PKL type mappings:
+    /// Common Rust-to-Pkl type mappings:
     /// - `String` → `String`
     /// - `i32`, `u32` → `Int`
     /// - `f32`, `f64` → `Float`
@@ -1725,7 +1742,7 @@ pub struct PklProperty {
     /// - `Option<T>` → `T?`
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// "String"              // Simple string property
     /// "Int"                 // Integer value
     /// "List<String>"        // Array of strings
@@ -1737,7 +1754,7 @@ pub struct PklProperty {
 
     /// Optional documentation for the property.
     ///
-    /// Provides human-readable documentation that appears in generated PKL files
+    /// Provides human-readable documentation that appears in generated Pkl files
     /// as comments above the property declaration. Good documentation should
     /// explain the property's purpose, expected values, and any special behavior.
     ///
@@ -1749,7 +1766,7 @@ pub struct PklProperty {
     /// - **Relationships**: Mention dependencies on other properties
     ///
     /// # Generated Output
-    /// When documentation is provided, it generates PKL comments:
+    /// When documentation is provided, it generates Pkl comments:
     /// ```pkl
     /// /// Database connection timeout in seconds.
     /// /// Must be between 1 and 300 seconds.
@@ -1765,7 +1782,7 @@ pub struct PklProperty {
     /// - Provide examples for complex formats
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// Some("Database host address (hostname or IP)".to_string())
     /// Some("Maximum number of retry attempts (1-10)".to_string())
     /// Some("Enable SSL/TLS encryption for connections".to_string())
@@ -1775,12 +1792,12 @@ pub struct PklProperty {
 
     /// Whether the property is optional (nullable).
     ///
-    /// When `true`, the property can be omitted from PKL configurations,
+    /// When `true`, the property can be omitted from Pkl configurations,
     /// and the property type is automatically made nullable (e.g., `String` becomes `String?`).
     /// Optional properties should generally have sensible defaults or be truly optional
     /// for the configuration to be valid.
     ///
-    /// # Impact on Generated PKL
+    /// # Impact on Generated Pkl
     /// ```pkl
     /// // Required property (optional = false)
     /// host: String
@@ -1799,7 +1816,7 @@ pub struct PklProperty {
     /// - **Validation**: Ensure optional properties don't break validation logic
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// true   // Property can be omitted
     /// false  // Property must be provided
     /// ```
@@ -1808,16 +1825,16 @@ pub struct PklProperty {
     /// Default value for the property.
     ///
     /// Provides a default value that's used when the property is not specified
-    /// in a PKL configuration. The default value must be compatible with the
+    /// in a Pkl configuration. The default value must be compatible with the
     /// property's type and satisfy any validation constraints.
     ///
     /// # Format Requirements
-    /// Default values must be valid PKL expressions:
+    /// Default values must be valid Pkl expressions:
     /// - **Strings**: Use quotes - `"localhost"`
     /// - **Numbers**: No quotes - `8080`, `3.14`
     /// - **Booleans**: No quotes - `true`, `false`
-    /// - **Collections**: PKL syntax - `List("a", "b")`, `Map("key", "value")`
-    /// - **Objects**: PKL object syntax - `new DatabaseConfig { host = "localhost" }`
+    /// - **Collections**: Pkl syntax - `List("a", "b")`, `Map("key", "value")`
+    /// - **Objects**: Pkl object syntax - `new DatabaseConfig { host = "localhost" }`
     ///
     /// # Validation
     /// Default values are automatically validated against:
@@ -1841,7 +1858,7 @@ pub struct PklProperty {
     /// ```
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// Some("\"localhost\"".to_string())     // String default
     /// Some("8080".to_string())              // Integer default
     /// Some("true".to_string())              // Boolean default
@@ -1853,7 +1870,7 @@ pub struct PklProperty {
     /// Validation constraints applied to the property.
     ///
     /// Constraints define validation rules that property values must satisfy.
-    /// They're converted to PKL constraint annotations that provide runtime
+    /// They're converted to Pkl constraint annotations that provide runtime
     /// validation and improve configuration authoring experience with better
     /// error messages and IDE support.
     ///
@@ -1864,8 +1881,8 @@ pub struct PklProperty {
     /// - **Enum constraints**: `OneOf` for restricting to specific values
     /// - **Custom constraints**: Complex validation logic
     ///
-    /// # Generated PKL Annotations
-    /// Constraints generate PKL annotations that provide validation:
+    /// # Generated Pkl Annotations
+    /// Constraints generate Pkl annotations that provide validation:
     /// ```pkl
     /// @IntRange { min = 1; max = 65535 }
     /// port: Int
@@ -1888,15 +1905,17 @@ pub struct PklProperty {
     /// # Error Messages
     /// Constraints can include custom error messages for better user experience:
     /// ```rust
-    /// PklConstraint {
+    /// use space_pkl::types::{PklConstraint, PklConstraintKind};
+    ///
+    /// let constraint = PklConstraint {
     ///     kind: PklConstraintKind::Min,
     ///     value: "1".to_string(),
     ///     message: Some("Port must be at least 1".to_string()),
-    /// }
+    /// };
     /// ```
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// vec![
     ///     PklConstraint { kind: PklConstraintKind::Min, value: "1".to_string(), message: None },
     ///     PklConstraint { kind: PklConstraintKind::Max, value: "65535".to_string(), message: None },
@@ -1911,15 +1930,15 @@ pub struct PklProperty {
     /// included in template configurations to help users understand expected formats.
     ///
     /// # Format Requirements
-    /// Examples must be valid PKL expressions compatible with the property type:
+    /// Examples must be valid Pkl expressions compatible with the property type:
     /// - **Strings**: Use quotes - `"api.example.com"`
     /// - **Numbers**: No quotes - `443`, `1.5`
     /// - **Booleans**: No quotes - `true`, `false`
-    /// - **Arrays**: PKL list syntax - `List("item1", "item2")`
-    /// - **Objects**: PKL object syntax - `new Config { field = "value" }`
+    /// - **Arrays**: Pkl list syntax - `List("item1", "item2")`
+    /// - **Objects**: Pkl object syntax - `new Config { field = "value" }`
     ///
     /// # Usage in Documentation
-    /// Examples appear in generated PKL comments:
+    /// Examples appear in generated Pkl comments:
     /// ```pkl
     /// /// Database host address.
     /// /// Examples: "localhost", "db.example.com", "192.168.1.100"
@@ -1935,7 +1954,7 @@ pub struct PklProperty {
     ///
     /// # Multiple Examples
     /// Provide multiple examples to show variety:
-    /// ```
+    /// ```text
     /// vec![
     ///     "\"localhost\"".to_string(),
     ///     "\"api.production.com\"".to_string(),
@@ -1944,7 +1963,7 @@ pub struct PklProperty {
     /// ```
     ///
     /// # Examples for Complex Types
-    /// ```
+    /// ```text
     /// vec![
     ///     "new DatabaseConfig { host = \"localhost\"; port = 5432 }".to_string(),
     ///     "new DatabaseConfig { host = \"prod-db\"; port = 3306; ssl = true }".to_string(),
@@ -1955,7 +1974,7 @@ pub struct PklProperty {
     /// Deprecation information for the property.
     ///
     /// When present, marks the property as deprecated and provides information
-    /// about the deprecation. This generates appropriate PKL annotations and
+    /// about the deprecation. This generates appropriate Pkl annotations and
     /// documentation to warn users about deprecated properties and guide them
     /// toward alternatives.
     ///
@@ -1966,7 +1985,7 @@ pub struct PklProperty {
     /// - **Timeline**: When removal is planned (version/date)
     /// - **Migration**: How to migrate existing configurations
     ///
-    /// # Generated PKL Output
+    /// # Generated Pkl Output
     /// Deprecated properties generate warning annotations:
     /// ```pkl
     /// @Deprecated { message = "Use 'newProperty' instead. Will be removed in v2.0" }
@@ -1986,7 +2005,7 @@ pub struct PklProperty {
     /// 4. **Eventually remove**: After sufficient warning period
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// Some("Use 'databaseUrl' instead. Will be removed in v2.0".to_string())
     /// Some("Replaced by 'connectionConfig'. Migrate by v1.5".to_string())
     /// None  // Property is not deprecated
@@ -1994,11 +2013,11 @@ pub struct PklProperty {
     pub deprecated: Option<String>,
 }
 
-/// Represents a validation constraint for PKL properties.
+/// Represents a validation constraint for Pkl properties.
 ///
-/// Constraints define validation rules that are enforced at PKL evaluation time,
+/// Constraints define validation rules that are enforced at Pkl evaluation time,
 /// providing type safety, value validation, and better error messages. They map
-/// directly to PKL annotation syntax and support both built-in and custom validation logic.
+/// directly to Pkl annotation syntax and support both built-in and custom validation logic.
 ///
 /// # Constraint Architecture
 ///
@@ -2007,9 +2026,9 @@ pub struct PklProperty {
 /// - **Value**: The constraint parameter (threshold, regex, enum values)
 /// - **Message**: Optional custom error message for validation failures
 ///
-/// # PKL Integration
+/// # Pkl Integration
 ///
-/// Constraints generate PKL annotations that are enforced at runtime:
+/// Constraints generate Pkl annotations that are enforced at runtime:
 /// ```pkl
 /// @IntRange { min = 1; max = 100 }
 /// priority: Int
@@ -2023,8 +2042,8 @@ pub struct PklProperty {
 ///
 /// # Error Handling
 ///
-/// When constraints are violated, PKL generates helpful error messages:
-/// ```
+/// When constraints are violated, Pkl generates helpful error messages:
+/// ```text
 /// error: value out of range
 ///   --> config.pkl:10:15
 ///    |
@@ -2038,30 +2057,34 @@ pub struct PklProperty {
 ///
 /// Provide user-friendly error messages for better debugging:
 /// ```rust
-/// PklConstraint {
+/// use space_pkl::types::{PklConstraint, PklConstraintKind};
+///
+/// let constraint = PklConstraint {
 ///     kind: PklConstraintKind::Min,
 ///     value: "1".to_string(),
 ///     message: Some("Priority must be at least 1 (lowest priority)".to_string()),
-/// }
+/// };
 /// ```
 ///
 /// # Constraint Composition
 ///
 /// Multiple constraints can be applied to create complex validation:
 /// ```rust
-/// vec![
-///     PklConstraint { kind: PklConstraintKind::MinLength, value: "8".to_string(), message: None },
+/// use space_pkl::types::{PklConstraint, PklConstraintKind};
+///
+/// let constraints = vec![
+///     PklConstraint { kind: PklConstraintKind::Length, value: "8".to_string(), message: None },
 ///     PklConstraint { kind: PklConstraintKind::Pattern, value: ".*[A-Z].*".to_string(),
 ///                    message: Some("Must contain at least one uppercase letter".to_string()) },
 ///     PklConstraint { kind: PklConstraintKind::Pattern, value: ".*[0-9].*".to_string(),
 ///                    message: Some("Must contain at least one digit".to_string()) },
-/// ]
+/// ];
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PklConstraint {
     /// The type of constraint being applied.
     ///
-    /// Determines which PKL annotation will be generated and what kind of
+    /// Determines which Pkl annotation will be generated and what kind of
     /// validation logic will be applied. Each constraint kind has specific
     /// requirements for the `value` field format.
     ///
@@ -2083,7 +2106,7 @@ pub struct PklConstraint {
     /// - **Custom**: Custom expression string
     ///
     /// # Value Format Examples
-    /// ```
+    /// ```text
     /// "42"                          // Numeric constraint
     /// "^[a-zA-Z0-9_-]+$"           // Regex pattern
     /// "production,staging,dev"      // Enum values
@@ -2094,7 +2117,7 @@ pub struct PklConstraint {
     /// Optional custom error message.
     ///
     /// When provided, this message replaces the default constraint violation
-    /// message in PKL error output. Should be user-friendly and provide
+    /// message in Pkl error output. Should be user-friendly and provide
     /// clear guidance on how to fix the validation error.
     ///
     /// # Message Guidelines
@@ -2104,18 +2127,18 @@ pub struct PklConstraint {
     /// - **Be actionable**: Provide concrete next steps
     ///
     /// # Examples
-    /// ```
+    /// ```text
     /// Some("Port must be between 1 and 65535".to_string())
     /// Some("Username must contain only letters, numbers, and underscores".to_string())
     /// Some("Environment must be one of: production, staging, development".to_string())
-    /// None  // Use default PKL error message
+    /// None  // Use default Pkl error message
     /// ```
     pub message: Option<String>,
 }
 
-/// Types of validation constraints supported in PKL schemas.
+/// Types of validation constraints supported in Pkl schemas.
 ///
-/// Each constraint kind maps to specific PKL annotation syntax and provides
+/// Each constraint kind maps to specific Pkl annotation syntax and provides
 /// different types of validation logic. Constraints can be combined to create
 /// comprehensive validation rules for properties.
 ///
@@ -2136,11 +2159,11 @@ pub struct PklConstraint {
 /// - **Content validation**: Ensure collection elements meet criteria
 /// - **Uniqueness**: Prevent duplicate values in collections
 ///
-/// # PKL Annotation Mapping
+/// # Pkl Annotation Mapping
 ///
-/// Each constraint kind generates specific PKL annotations:
+/// Each constraint kind generates specific Pkl annotations:
 ///
-/// | Constraint Kind | PKL Annotation | Example Usage |
+/// | Constraint Kind | Pkl Annotation | Example Usage |
 /// |----------------|----------------|---------------|
 /// | `Min` | `@IntRange { min = N }` | `@IntRange { min = 1 }` |
 /// | `Max` | `@IntRange { max = N }` | `@IntRange { max = 100 }` |
@@ -2187,14 +2210,14 @@ pub enum PklConstraintKind {
     ///
     /// Ensures that numeric values (integers, floats) are greater than or equal
     /// to the specified minimum. Generates `@IntRange { min = N }` or
-    /// `@FloatRange { min = N }` annotations in PKL.
+    /// `@FloatRange { min = N }` annotations in Pkl.
     ///
     /// # Value Format
     /// - **Integer**: `"42"`
     /// - **Float**: `"3.14"`
     /// - **Negative**: `"-10"`
     ///
-    /// # Generated PKL
+    /// # Generated Pkl
     /// ```pkl
     /// @IntRange { min = 1 }
     /// port: Int
@@ -2214,14 +2237,14 @@ pub enum PklConstraintKind {
     ///
     /// Ensures that numeric values (integers, floats) are less than or equal
     /// to the specified maximum. Generates `@IntRange { max = N }` or
-    /// `@FloatRange { max = N }` annotations in PKL.
+    /// `@FloatRange { max = N }` annotations in Pkl.
     ///
     /// # Value Format
     /// - **Integer**: `"100"`
     /// - **Float**: `"99.99"`
     /// - **Large numbers**: `"2147483647"`
     ///
-    /// # Generated PKL
+    /// # Generated Pkl
     /// ```pkl
     /// @IntRange { max = 65535 }
     /// port: Int
@@ -2241,7 +2264,7 @@ pub enum PklConstraintKind {
     ///
     /// Controls the length of strings, lists, sets, and maps. Can specify
     /// minimum length, maximum length, or both. Generates `@Length` annotations
-    /// with min/max parameters in PKL.
+    /// with min/max parameters in Pkl.
     ///
     /// # Value Formats
     /// - **Minimum only**: `"5"` (at least 5 characters/elements)
@@ -2249,7 +2272,7 @@ pub enum PklConstraintKind {
     /// - **Range**: `"5,100"` (between 5 and 100 characters/elements)
     /// - **Exact**: `"10,10"` (exactly 10 characters/elements)
     ///
-    /// # Generated PKL
+    /// # Generated Pkl
     /// ```pkl
     /// @Length { min = 1; max = 50 }
     /// username: String
@@ -2272,7 +2295,7 @@ pub enum PklConstraintKind {
     ///
     /// Validates strings against regular expression patterns. Useful for
     /// enforcing specific formats like emails, URLs, identifiers, or
-    /// custom business rules. Generates `@Regex("pattern")` annotations in PKL.
+    /// custom business rules. Generates `@Regex("pattern")` annotations in Pkl.
     ///
     /// # Value Format
     /// The value should be a valid regular expression string:
@@ -2281,7 +2304,7 @@ pub enum PklConstraintKind {
     /// - **URL validation**: `"^https?://[^\\s/$.?#].[^\\s]*$"`
     /// - **Identifier validation**: `"^[a-zA-Z_][a-zA-Z0-9_]*$"`
     ///
-    /// # Generated PKL
+    /// # Generated Pkl
     /// ```pkl
     /// @Regex("^[a-zA-Z0-9_-]+$")
     /// identifier: String
@@ -2293,12 +2316,14 @@ pub enum PklConstraintKind {
     /// # Escaping Requirements
     /// Remember to escape backslashes in Rust strings:
     /// ```rust
+    /// use space_pkl::types::{PklConstraint, PklConstraintKind};
+    ///
     /// // Email pattern - note the double backslashes
-    /// PklConstraint {
+    /// let constraint = PklConstraint {
     ///     kind: PklConstraintKind::Pattern,
     ///     value: r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$".to_string(),
     ///     message: Some("Must be a valid email address".to_string()),
-    /// }
+    /// };
     /// ```
     ///
     /// # Common Use Cases
@@ -2317,13 +2342,13 @@ pub enum PklConstraintKind {
     /// validation rules.
     ///
     /// # Value Format
-    /// The value should be a PKL expression that evaluates to a boolean:
+    /// The value should be a Pkl expression that evaluates to a boolean:
     /// - **Property references**: `"this.port > 0 && this.port < 65536"`
     /// - **Mathematical expressions**: `"this.min <= this.max"`
     /// - **String operations**: `"this.name.length > 0"`
     /// - **Collection operations**: `"this.items.length >= 1"`
     ///
-    /// # Generated PKL
+    /// # Generated Pkl
     /// ```pkl
     /// @Validate(this.startDate < this.endDate)
     /// class DateRange {
@@ -2340,19 +2365,21 @@ pub enum PklConstraintKind {
     ///
     /// # Advanced Examples
     /// ```rust
+    /// use space_pkl::types::{PklConstraint, PklConstraintKind};
+    ///
     /// // Validate that timeout is reasonable based on retry count
-    /// PklConstraint {
+    /// let timeout_constraint = PklConstraint {
     ///     kind: PklConstraintKind::Custom,
     ///     value: "this.timeout > this.retryCount * 1000".to_string(),
     ///     message: Some("Timeout must allow time for all retries".to_string()),
-    /// }
+    /// };
     ///
     /// // Validate mutual exclusion of options
-    /// PklConstraint {
+    /// let exclusion_constraint = PklConstraint {
     ///     kind: PklConstraintKind::Custom,
     ///     value: "!(this.useSSL && this.usePlaintext)".to_string(),
     ///     message: Some("Cannot enable both SSL and plaintext modes".to_string()),
-    /// }
+    /// };
     /// ```
     ///
     /// # Common Use Cases
@@ -2364,9 +2391,9 @@ pub enum PklConstraintKind {
     Custom,
 }
 
-/// Context for template rendering in the PKL schema generation system.
+/// Context for template rendering in the Pkl schema generation system.
 ///
-/// Provides all the data and configuration needed to render PKL templates,
+/// Provides all the data and configuration needed to render Pkl templates,
 /// including the schema module definition, generator configuration, and
 /// additional template variables for customization.
 ///
@@ -2422,11 +2449,17 @@ pub enum PklConstraintKind {
 /// };
 ///
 /// let config = GeneratorConfig {
+///     include_comments: true,
 ///     include_examples: true,
 ///     include_validation: true,
-///     // ... other config
-/// #   output_dir: std::path::PathBuf::new(), template_config: Default::default(),
-/// #   schema_type: crate::config::SchemaType::Workspace, type_mappings: HashMap::new(),
+///     include_deprecated: false,
+///     header: None,
+///     footer: None,
+///     output_dir: std::path::PathBuf::from("./pkl-schemas"),
+///     module_name: "moon".to_string(),
+///     split_types: true,
+///     type_mappings: std::collections::HashMap::new(),
+///     template: space_pkl::config::TemplateConfig::default(),
 /// };
 ///
 /// let mut variables = HashMap::new();
@@ -2447,6 +2480,10 @@ pub enum PklConstraintKind {
 ///
 /// ## Metadata Variables
 /// ```rust
+/// use serde_json::json;
+/// use std::collections::HashMap;
+///
+/// let mut variables = HashMap::new();
 /// variables.insert("version".to_string(), json!("1.2.3"));
 /// variables.insert("description".to_string(), json!("Moon workspace configuration"));
 /// variables.insert("generated_at".to_string(), json!("2025-05-31T10:00:00Z"));
@@ -2455,6 +2492,10 @@ pub enum PklConstraintKind {
 ///
 /// ## Formatting Variables
 /// ```rust
+/// use serde_json::json;
+/// use std::collections::HashMap;
+///
+/// let mut variables = HashMap::new();
 /// variables.insert("indent".to_string(), json!("  "));        // 2 spaces
 /// variables.insert("line_ending".to_string(), json!("\n"));   // Unix line endings
 /// variables.insert("comment_style".to_string(), json!("///"));// Doc comment style
@@ -2462,6 +2503,10 @@ pub enum PklConstraintKind {
 ///
 /// ## Feature Flags
 /// ```rust
+/// use serde_json::json;
+/// use std::collections::HashMap;
+///
+/// let mut variables = HashMap::new();
 /// variables.insert("include_header".to_string(), json!(true));
 /// variables.insert("include_imports".to_string(), json!(true));
 /// variables.insert("include_examples".to_string(), json!(false));
@@ -2472,6 +2517,15 @@ pub enum PklConstraintKind {
 ///
 /// Template contexts support inheritance for modular template systems:
 /// ```rust
+/// use space_pkl::types::{TemplateContext, PklModule};
+/// use space_pkl::config::GeneratorConfig;
+/// use std::collections::HashMap;
+/// use serde_json::json;
+///
+/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # let base_module = PklModule { name: "Base".to_string(), documentation: None, imports: vec![], exports: vec![], types: vec![], properties: vec![] };
+/// # let base_config = GeneratorConfig { include_comments: true, include_examples: true, include_validation: true, include_deprecated: false, header: None, footer: None, output_dir: std::path::PathBuf::from("./pkl-schemas"), module_name: "moon".to_string(), split_types: true, type_mappings: std::collections::HashMap::new(), template: space_pkl::config::TemplateConfig::default() };
+/// # let base_variables = HashMap::new();
 /// // Base context with common variables
 /// let base_context = TemplateContext {
 ///     module: base_module,
@@ -2480,6 +2534,7 @@ pub enum PklConstraintKind {
 /// };
 ///
 /// // Extended context with additional variables
+/// # let extended_module = PklModule { name: "Extended".to_string(), documentation: None, imports: vec![], exports: vec![], types: vec![], properties: vec![] };
 /// let mut extended_variables = base_context.variables.clone();
 /// extended_variables.insert("custom_feature".to_string(), json!(true));
 ///
@@ -2488,14 +2543,16 @@ pub enum PklConstraintKind {
 ///     config: base_context.config,
 ///     variables: extended_variables,
 /// };
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TemplateContext {
-    /// The PKL module being rendered.
+    /// The Pkl module being rendered.
     ///
     /// Contains the complete schema definition including types, properties,
     /// constraints, and documentation. This is the primary data source for
-    /// template rendering and provides the structure for generated PKL files.
+    /// template rendering and provides the structure for generated Pkl files.
     ///
     /// # Module Contents
     /// - **Types**: Class definitions and enums

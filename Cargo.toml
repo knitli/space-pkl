@@ -76,6 +76,14 @@ fancy-errors = ["color-eyre"]
 
 [profile.release]
 lto = true
+opt-level = 3
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[profile.test]
+opt-level = 2
+debug = "full"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "doc-header.html"]

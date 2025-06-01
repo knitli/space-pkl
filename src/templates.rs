@@ -1,14 +1,14 @@
-//! Template Engine Module for PKL Schema Generation
+//! Template Engine Module for Pkl Schema Generation
 //!
-//! This module provides a comprehensive template system for generating PKL configuration
+//! This module provides a comprehensive template system for generating Pkl configuration
 //! schemas from Moon configuration types. It uses the Handlebars templating engine to
-//! convert structured type definitions into properly formatted PKL files with documentation,
+//! convert structured type definitions into properly formatted Pkl files with documentation,
 //! validation, and examples.
 //!
 //! # Core Features
 //!
 //! - **Flexible Template System**: Handlebars-based templates with custom helpers
-//! - **Built-in Templates**: Ready-to-use templates for common PKL patterns
+//! - **Built-in Templates**: Ready-to-use templates for common Pkl patterns
 //! - **Custom Template Support**: Load and use project-specific templates
 //! - **Rich Helper Functions**: String manipulation, type checking, and formatting
 //! - **Documentation Generation**: Automatic comment and example generation
@@ -18,7 +18,7 @@
 //!
 //! ```text
 //! ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-//! │   PklModule     │───▶│  TemplateEngine  │───▶│   PKL Output    │
+//! │   PklModule     │───▶│  TemplateEngine  │───▶│   Pkl Output    │
 //! │  (Type Data)    │    │   (Handlebars)   │    │  (Formatted)    │
 //! └─────────────────┘    └──────────────────┘    └─────────────────┘
 //!                               │
@@ -32,14 +32,14 @@
 //! # Template Types
 //!
 //! ## Module Templates
-//! Generate complete PKL files with proper structure:
+//! Generate complete Pkl files with proper structure:
 //! - Module declarations and imports
 //! - Type definitions and classes
 //! - Documentation and examples
 //! - Validation constraints
 //!
 //! ## Class Templates
-//! Render individual PKL classes:
+//! Render individual Pkl classes:
 //! - Property definitions with types
 //! - Optional property handling
 //! - Default value assignment
@@ -88,14 +88,15 @@
 //! # fn example() -> space_pkl::Result<()> {
 //! let template_config = TemplateConfig {
 //!     template_dir: Some(PathBuf::from("./custom-templates")),
-//!     template_extension: ".hbs".to_string(),
+//!     template_extension: "hbs".to_string(),
+//!     custom_templates: std::collections::HashMap::new(),
+//!     generate_templates: true,
 //! };
 //!
 //! let config = GeneratorConfig {
-//!     template: template_config,
-//!     // ... other config
-//! #   include_examples: true, include_validation: true, output_dir: PathBuf::new(),
-//! #   schema_type: space_pkl::config::SchemaType::Workspace, type_mappings: std::collections::HashMap::new(),
+//!     include_examples: true,
+//!     include_validation: true,
+//!     ..Default::default()
 //! };
 //!
 //! let engine = TemplateEngine::new(&config);
@@ -114,7 +115,7 @@
 //! ## Type Operations
 //! - `optional`: Handle optional type formatting
 //! - `is_typealias`: Check if type is an alias
-//! - `escape_pkl_keyword`: Escape PKL reserved words
+//! - `escape_pkl_keyword`: Escape Pkl reserved words
 //!
 //! ## Documentation
 //! - `doc`: Format documentation comments
@@ -122,7 +123,7 @@
 //!
 //! # Template Syntax
 //!
-//! Templates use Handlebars syntax with PKL-specific helpers:
+//! Templates use Handlebars syntax with Pkl-specific helpers:
 //!
 //! ```handlebars
 //! {{!-- Module header --}}
@@ -149,13 +150,13 @@
 //! The engine includes several built-in templates:
 //!
 //! ## Module Template
-//! Renders complete PKL modules with proper structure, imports, and type definitions.
+//! Renders complete Pkl modules with proper structure, imports, and type definitions.
 //!
 //! ## Index Template
 //! Generates module index files that provide access to all schema types.
 //!
 //! ## Class Template
-//! Formats individual PKL classes with properties and validation.
+//! Formats individual Pkl classes with properties and validation.
 //!
 //! ## Property Template
 //! Handles individual property formatting with types and constraints.
@@ -164,7 +165,7 @@
 //!
 //! ## Custom Templates
 //! Place `.hbs` files in your template directory to override built-in templates:
-//! ```
+//! ```text
 //! templates/
 //! ├── module.hbs      # Override module template
 //! ├── class.hbs       # Override class template
@@ -199,17 +200,17 @@ use serde_json::json;
 use std::collections::HashMap;
 use tracing::debug;
 
-/// Template engine for rendering PKL schemas from type definitions.
+/// Template engine for rendering Pkl schemas from type definitions.
 ///
 /// The `TemplateEngine` provides a high-level interface for converting structured
-/// type definitions into formatted PKL configuration files. It uses the Handlebars
+/// type definitions into formatted Pkl configuration files. It uses the Handlebars
 /// templating engine with custom helpers and built-in templates optimized for
-/// PKL syntax and Moon configuration patterns.
+/// Pkl syntax and Moon configuration patterns.
 ///
 /// # Features
 ///
 /// - **Handlebars Integration**: Full Handlebars templating with custom helpers
-/// - **Built-in Templates**: Ready-to-use templates for common PKL patterns
+/// - **Built-in Templates**: Ready-to-use templates for common Pkl patterns
 /// - **Custom Template Loading**: Support for project-specific template customization
 /// - **Helper Functions**: String manipulation, type formatting, and validation helpers
 /// - **Error Handling**: Detailed error reporting with context and suggestions
@@ -228,7 +229,7 @@ use tracing::debug;
 ///          │
 ///          ▼
 /// ┌─────────────────┐
-/// │   PKL Output    │
+/// │   Pkl Output    │
 /// │ • Formatted     │
 /// │ • Validated     │
 /// │ • Documented    │
@@ -246,12 +247,12 @@ use tracing::debug;
 /// let config = GeneratorConfig::default();
 /// let engine = TemplateEngine::new(&config);
 ///
-/// // Render module with default templates
-/// let output = engine.render_module(&module, &config)?;
 /// # let module = space_pkl::types::PklModule {
 /// #   name: "Test".to_string(), documentation: None, imports: vec![],
 /// #   exports: vec![], types: vec![], properties: vec![]
 /// # };
+/// // Render module with default templates
+/// let output = engine.render_module(&module, &config)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -265,16 +266,15 @@ use tracing::debug;
 /// # fn example() -> space_pkl::Result<()> {
 /// let template_config = TemplateConfig {
 ///     template_dir: Some(PathBuf::from("./templates")),
-///     template_extension: ".hbs".to_string(),
+///     template_extension: "hbs".to_string(),
+///     custom_templates: std::collections::HashMap::new(),
+///     generate_templates: true,
 /// };
 ///
 /// let config = GeneratorConfig {
-///     template: template_config,
 ///     include_examples: true,
 ///     include_validation: true,
-///     // ... other configuration
-/// #   output_dir: PathBuf::new(), schema_type: space_pkl::config::SchemaType::Workspace,
-/// #   type_mappings: std::collections::HashMap::new(),
+///     ..Default::default()
 /// };
 ///
 /// let engine = TemplateEngine::new(&config);
@@ -305,7 +305,7 @@ use tracing::debug;
 /// - `optional`: Add "?" for optional types
 /// - `doc`: Format documentation comments
 /// - `deprecated`: Render deprecation warnings
-/// - `escape_pkl_keyword`: Handle PKL reserved words
+/// - `escape_pkl_keyword`: Handle Pkl reserved words
 ///
 /// # Performance Considerations
 ///
@@ -338,7 +338,7 @@ impl TemplateEngine {
     ///
     /// # Configuration Processing
     ///
-    /// 1. **HTML Escaping**: Disabled to prevent interference with PKL syntax
+    /// 1. **HTML Escaping**: Disabled to prevent interference with Pkl syntax
     /// 2. **Built-in Templates**: Registered for module, class, and property rendering
     /// 3. **Helper Functions**: Registered for string manipulation and formatting
     /// 4. **Custom Templates**: Loaded from `template_dir` if specified
@@ -348,7 +348,7 @@ impl TemplateEngine {
     ///
     /// When `template_dir` is specified, the engine looks for templates with the
     /// configured extension (default `.hbs`):
-    /// ```
+    /// ```text
     /// templates/
     /// ├── module.hbs      # Override main module template
     /// ├── class.hbs       # Override class template
@@ -384,14 +384,15 @@ impl TemplateEngine {
     ///
     /// let template_config = TemplateConfig {
     ///     template_dir: Some(PathBuf::from("./my-templates")),
-    ///     template_extension: ".hbs".to_string(),
+    ///     template_extension: "hbs".to_string(),
+    ///     custom_templates: std::collections::HashMap::new(),
+    ///     generate_templates: true,
     /// };
     ///
     /// let config = GeneratorConfig {
-    ///     template: template_config,
-    ///     // ... other config
-    /// #   include_examples: true, include_validation: true, output_dir: PathBuf::new(),
-    /// #   schema_type: space_pkl::config::SchemaType::Workspace, type_mappings: std::collections::HashMap::new(),
+    ///     include_examples: true,
+    ///     include_validation: true,
+    ///     ..Default::default()
     /// };
     ///
     /// let engine = TemplateEngine::new(&config);
@@ -443,10 +444,10 @@ impl TemplateEngine {
         Self { handlebars }
     }
 
-    /// Renders a complete PKL module from type definitions.
+    /// Renders a complete Pkl module from type definitions.
     ///
     /// Converts a `PklModule` containing type definitions, properties, and metadata
-    /// into a formatted PKL configuration file. The output includes proper module
+    /// into a formatted Pkl configuration file. The output includes proper module
     /// declarations, imports, type definitions, documentation, and validation constraints.
     ///
     /// # Rendering Process
@@ -455,9 +456,9 @@ impl TemplateEngine {
     /// 2. **Type Processing**: Renders each type definition using appropriate templates
     /// 3. **Template Resolution**: Uses custom templates if available, falls back to built-ins
     /// 4. **Content Generation**: Applies Handlebars processing with helper functions
-    /// 5. **Output Formatting**: Produces formatted PKL code ready for use
+    /// 5. **Output Formatting**: Produces formatted Pkl code ready for use
     ///
-    /// # Generated PKL Structure
+    /// # Generated Pkl Structure
     ///
     /// ```pkl
     /// // Generated header (if configured)
@@ -525,8 +526,7 @@ impl TemplateEngine {
     ///                 }
     ///             ],
     ///             // ... other fields
-    /// #           documentation: None, enum_values: None, extends: None, constraints: vec![],
-    /// #           examples: vec![], deprecated: None,
+    /// #           documentation: None, enum_values: None, extends: vec![], abstract_type: false, deprecated: None,
     ///         }
     ///     ],
     ///     properties: vec![],
@@ -535,7 +535,7 @@ impl TemplateEngine {
     /// let config = GeneratorConfig::default();
     /// let pkl_output = engine.render_module(&module, &config)?;
     ///
-    /// // Output will be formatted PKL code:
+    /// // Output will be formatted Pkl code:
     /// // module AppConfig
     /// //
     /// // /// Application configuration
@@ -556,9 +556,7 @@ impl TemplateEngine {
     /// let config = GeneratorConfig {
     ///     include_examples: true,
     ///     include_validation: true,
-    ///     // ... other config
-    /// #   output_dir: std::path::PathBuf::new(), template: Default::default(),
-    /// #   schema_type: space_pkl::config::SchemaType::Workspace, type_mappings: std::collections::HashMap::new(),
+    ///     ..Default::default()
     /// };
     ///
     /// let engine = TemplateEngine::new(&config);
@@ -623,7 +621,7 @@ impl TemplateEngine {
     /// Renders a module index file that provides access to all schema types.
     ///
     /// Generates a comprehensive index file that serves as an entry point to all
-    /// available PKL configuration schemas. The index includes documentation,
+    /// available Pkl configuration schemas. The index includes documentation,
     /// import statements, and references to main configuration classes for easy
     /// discovery and usage.
     ///
@@ -680,7 +678,7 @@ impl TemplateEngine {
     ///
     /// Each schema entry includes:
     /// - `name`: Human-readable schema name
-    /// - `file`: PKL file name for imports
+    /// - `file`: Pkl file name for imports
     /// - `main_class`: Primary configuration class name
     ///
     /// # Usage Examples
@@ -693,17 +691,16 @@ impl TemplateEngine {
     /// # fn example() -> space_pkl::Result<()> {
     /// let config = GeneratorConfig {
     ///     module_name: "moon_schemas".to_string(),
-    ///     // ... other config
-    /// #   include_examples: true, include_validation: true, output_dir: std::path::PathBuf::new(),
-    /// #   template: Default::default(), schema_type: space_pkl::config::SchemaType::Workspace,
-    /// #   type_mappings: std::collections::HashMap::new(),
+    ///     include_examples: true,
+    ///     include_validation: true,
+    ///     ..Default::default()
     /// };
     ///
     /// let engine = TemplateEngine::new(&config);
     /// let index_content = engine.render_module_index(&config)?;
     ///
-    /// // Save to index.pkl or similar
-    /// std::fs::write("index.pkl", index_content)?;
+    /// // The generated index is ready to use
+    /// assert!(!index_content.is_empty());
     /// # Ok(())
     /// # }
     /// ```
@@ -716,19 +713,17 @@ impl TemplateEngine {
     ///
     /// # fn example() -> space_pkl::Result<()> {
     /// let config = GeneratorConfig {
-    ///     output_dir: PathBuf::from("./generated"),
-    ///     // ... other config
-    /// #   include_examples: true, include_validation: true, module_name: "schemas".to_string(),
-    /// #   template: Default::default(), schema_type: space_pkl::config::SchemaType::Workspace,
-    /// #   type_mappings: std::collections::HashMap::new(),
+    ///     include_examples: true,
+    ///     include_validation: true,
+    ///     module_name: "schemas".to_string(),
+    ///     ..Default::default()
     /// };
     ///
     /// let engine = TemplateEngine::new(&config);
     /// let index = engine.render_module_index(&config)?;
     ///
-    /// // Write to output directory
-    /// let index_path = config.output_dir.join("index.pkl");
-    /// std::fs::write(index_path, index)?;
+    /// // The generated index content is ready to write
+    /// assert!(!index.is_empty());
     /// # Ok(())
     /// # }
     /// ```
@@ -751,7 +746,7 @@ impl TemplateEngine {
     ///
     /// # Output Integration
     ///
-    /// The generated index file integrates with PKL tooling:
+    /// The generated index file integrates with Pkl tooling:
     /// - **IDE support**: Provides autocomplete and navigation
     /// - **Validation**: Enables cross-module type checking
     /// - **Documentation**: Generates comprehensive API docs
@@ -800,8 +795,8 @@ impl TemplateEngine {
     /// Registers helper functions with the Handlebars template engine.
     ///
     /// Helper functions extend template capabilities with commonly needed operations
-    /// for PKL schema generation. They handle string manipulation, type formatting,
-    /// documentation rendering, and PKL-specific syntax requirements.
+    /// for Pkl schema generation. They handle string manipulation, type formatting,
+    /// documentation rendering, and Pkl-specific syntax requirements.
     ///
     /// # Available Helpers
     ///
@@ -816,13 +811,13 @@ impl TemplateEngine {
     /// ### `snake_case`
     /// Converts CamelCase strings to snake_case format.
     /// - **Usage**: `{{snake_case "HelloWorld"}}` → `"hello_world"`
-    /// - **Purpose**: Convert Rust identifiers to PKL naming conventions
+    /// - **Purpose**: Convert Rust identifiers to Pkl naming conventions
     /// - **Parameters**: Single string parameter
     ///
     /// ### `camel_case`
     /// Converts snake_case strings to camelCase format.
     /// - **Usage**: `{{camel_case "hello_world"}}` → `"helloWorld"`
-    /// - **Purpose**: Format property names for PKL conventions
+    /// - **Purpose**: Format property names for Pkl conventions
     /// - **Parameters**: Single string parameter
     ///
     /// ## Type and Syntax Helpers
@@ -840,15 +835,15 @@ impl TemplateEngine {
     /// - **Parameters**: Type object to check
     ///
     /// ### `escape_pkl_keyword`
-    /// Escapes PKL reserved words and keywords.
+    /// Escapes Pkl reserved words and keywords.
     /// - **Usage**: `{{escape_pkl_keyword "class"}}` → `"\`class\`"`
-    /// - **Purpose**: Handle property names that conflict with PKL keywords
+    /// - **Purpose**: Handle property names that conflict with Pkl keywords
     /// - **Parameters**: String to potentially escape
     ///
     /// ## Documentation Helpers
     ///
     /// ### `doc`
-    /// Formats documentation strings for PKL comment syntax.
+    /// Formats documentation strings for Pkl comment syntax.
     /// - **Usage**: `{{#if docs}}/// {{doc docs}}{{/if}}`
     /// - **Purpose**: Render multi-line documentation with proper comment formatting
     /// - **Parameters**: Documentation string (can be multi-line)
@@ -856,7 +851,7 @@ impl TemplateEngine {
     /// ### `deprecated`
     /// Renders deprecation annotations and warnings.
     /// - **Usage**: `{{deprecated deprecation_message}}`
-    /// - **Purpose**: Generate PKL deprecation decorators
+    /// - **Purpose**: Generate Pkl deprecation decorators
     /// - **Parameters**: Deprecation message string
     ///
     /// # Helper Registration Process

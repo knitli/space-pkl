@@ -1,8 +1,8 @@
-//! Utility Functions for PKL Schema Generation
+//! Utility Functions for Pkl Schema Generation
 //!
-//! This module provides essential utility functions that support the PKL schema generation
+//! This module provides essential utility functions that support the Pkl schema generation
 //! process. It includes file system operations, string manipulation functions, identifier
-//! conversion utilities, and validation helpers specifically designed for PKL syntax
+//! conversion utilities, and validation helpers specifically designed for Pkl syntax
 //! requirements and Moon configuration patterns.
 //!
 //! # Core Functionality
@@ -13,13 +13,13 @@
 //! - **Path Handling**: Cross-platform path manipulation and validation
 //!
 //! ## String and Identifier Conversion
-//! - **Naming Convention Translation**: Convert between Rust and PKL naming styles
-//! - **Type Name Processing**: Clean and format type names for PKL schemas
-//! - **Identifier Validation**: Ensure generated names comply with PKL syntax rules
+//! - **Naming Convention Translation**: Convert between Rust and Pkl naming styles
+//! - **Type Name Processing**: Clean and format type names for Pkl schemas
+//! - **Identifier Validation**: Ensure generated names comply with Pkl syntax rules
 //!
-//! ## PKL Syntax Support
-//! - **Keyword Escaping**: Handle PKL reserved words safely
-//! - **Identifier Formatting**: Convert Rust identifiers to PKL conventions
+//! ## Pkl Syntax Support
+//! - **Keyword Escaping**: Handle Pkl reserved words safely
+//! - **Identifier Formatting**: Convert Rust identifiers to Pkl conventions
 //! - **Type Name Cleaning**: Remove common Rust type prefixes and suffixes
 //!
 //! # Usage Patterns
@@ -47,19 +47,19 @@
 //! ```rust
 //! use space_pkl::utils::*;
 //!
-//! // Convert Rust naming to PKL naming
+//! // Convert Rust naming to Pkl naming
 //! let pkl_name = rust_to_pkl_identifier("my_config_option"); // "myConfigOption"
 //! let class_name = capitalize_first_letter("myClass");         // "MyClass"
 //! let type_name = type_name_to_pkl("WorkspaceConfig");        // "Workspace"
 //!
-//! // Validate PKL identifiers
+//! // Validate Pkl identifiers
 //! assert!(is_valid_pkl_identifier("validName"));
 //! assert!(!is_valid_pkl_identifier("123invalid"));
 //! ```
 //!
 //! # Conversion Rules
 //!
-//! ## Rust to PKL Identifier Conversion
+//! ## Rust to Pkl Identifier Conversion
 //! - **snake_case** → **camelCase**: `my_variable` → `myVariable`
 //! - **Preserve existing camelCase**: `alreadyCamel` → `alreadyCamel`
 //! - **Handle multiple underscores**: `foo__bar` → `fooBar`
@@ -68,9 +68,9 @@
 //! ## Type Name Processing
 //! - **Remove common suffixes**: `WorkspaceConfig` → `Workspace`
 //! - **Remove common prefixes**: `PartialProjectConfig` → `Project`
-//! - **Capitalize result**: Ensure proper PKL class naming
+//! - **Capitalize result**: Ensure proper Pkl class naming
 //!
-//! ## PKL Identifier Validation
+//! ## Pkl Identifier Validation
 //! - **First character**: Must be letter or underscore
 //! - **Subsequent characters**: Letters, numbers, underscores only
 //! - **Empty strings**: Invalid
@@ -269,7 +269,7 @@ pub fn read_file_to_string(path: &Path) -> Result<String> {
 ///
 /// Provides robust file writing that automatically creates parent directories as needed
 /// and includes detailed error reporting. This is the primary function for writing
-/// generated PKL schema files to disk.
+/// generated Pkl schema files to disk.
 ///
 /// # Automatic Directory Creation
 ///
@@ -351,11 +351,11 @@ pub fn write_string_to_file(path: &Path, content: &str) -> Result<()> {
         .wrap_err_with(|| format!("Failed to write file: {}", path.display()))
 }
 
-/// Converts a Rust identifier to PKL-style camelCase identifier.
+/// Converts a Rust identifier to Pkl-style camelCase identifier.
 ///
-/// Transforms Rust snake_case identifiers into PKL camelCase convention while
+/// Transforms Rust snake_case identifiers into Pkl camelCase convention while
 /// preserving existing camelCase identifiers. This is essential for generating
-/// PKL property names that follow PKL naming conventions from Rust configuration
+/// Pkl property names that follow Pkl naming conventions from Rust configuration
 /// structures.
 ///
 /// # Conversion Rules
@@ -434,7 +434,7 @@ pub fn write_string_to_file(path: &Path, content: &str) -> Result<()> {
 /// # Integration
 ///
 /// Used throughout the schema generation pipeline:
-/// - **Property names**: Converting struct field names to PKL properties
+/// - **Property names**: Converting struct field names to Pkl properties
 /// - **Template helpers**: Available in Handlebars templates as `camel_case`
 /// - **Type processing**: Ensuring consistent naming conventions
 pub fn rust_to_pkl_identifier(name: &str) -> String {
@@ -454,7 +454,7 @@ pub fn rust_to_pkl_identifier(name: &str) -> String {
 /// Capitalizes the first letter of a string while preserving the rest.
 ///
 /// This utility function provides Unicode-safe capitalization of the first character
-/// in a string, commonly used for converting identifiers to proper case for PKL
+/// in a string, commonly used for converting identifiers to proper case for Pkl
 /// class names, property names, and other naming conventions that require initial
 /// capitalization.
 ///
@@ -491,11 +491,11 @@ pub fn rust_to_pkl_identifier(name: &str) -> String {
 /// assert_eq!(capitalize_first_letter("AlreadyCapital"), "AlreadyCapital");
 /// ```
 ///
-/// ## PKL Class Name Generation
+/// ## Pkl Class Name Generation
 /// ```rust
 /// use space_pkl::utils::capitalize_first_letter;
 ///
-/// // Converting type names to PKL class names
+/// // Converting type names to Pkl class names
 /// let class_names = vec![
 ///     ("workspace", "Workspace"),
 ///     ("projectConfig", "ProjectConfig"),
@@ -540,8 +540,8 @@ pub fn rust_to_pkl_identifier(name: &str) -> String {
 ///
 /// # Integration
 ///
-/// Used throughout the PKL generation pipeline:
-/// - **Type conversion**: Converting cleaned type names to PKL class names
+/// Used throughout the Pkl generation pipeline:
+/// - **Type conversion**: Converting cleaned type names to Pkl class names
 /// - **Identifier processing**: Part of `rust_to_pkl_identifier` conversion
 /// - **Template helpers**: Available in Handlebars templates
 /// - **Name normalization**: Ensuring consistent capitalization patterns
@@ -558,12 +558,12 @@ pub fn capitalize_first_letter(s: &str) -> String {
         .collect()
 }
 
-/// Converts a Rust type name to PKL-style class name by removing common prefixes and suffixes.
+/// Converts a Rust type name to Pkl-style class name by removing common prefixes and suffixes.
 ///
 /// This function cleans Rust type names by removing common naming patterns used in
 /// Rust configuration structures, then capitalizes the result to create appropriate
-/// PKL class names. It handles the most common Rust naming conventions for configuration
-/// types and ensures the resulting names follow PKL class naming standards.
+/// Pkl class names. It handles the most common Rust naming conventions for configuration
+/// types and ensures the resulting names follow Pkl class naming standards.
 ///
 /// # Transformation Rules
 ///
@@ -635,7 +635,7 @@ pub fn capitalize_first_letter(s: &str) -> String {
 ///
 /// // No matching patterns - just capitalize
 /// assert_eq!(type_name_to_pkl("CustomStruct"), "CustomStruct");
-/// assert_eq!(type_name_to_pkl("simpleType"), "SimpleType"); // lowercase input
+/// assert_eq!(type_name_to_pkl("simpleType"), "Simple"); // "Type" suffix removed
 ///
 /// // Case-sensitive matching
 /// assert_eq!(type_name_to_pkl("workspaceconfig"), "Workspaceconfig"); // No match
@@ -647,20 +647,20 @@ pub fn capitalize_first_letter(s: &str) -> String {
 /// assert_eq!(type_name_to_pkl("Partial"), ""); // Only prefix
 /// ```
 ///
-/// ## PKL Schema Generation Context
+/// ## Pkl Schema Generation Context
 /// ```rust
 /// use space_pkl::utils::type_name_to_pkl;
 ///
-/// // Converting Rust configuration structs to PKL classes
+/// // Converting Rust configuration structs to Pkl classes
 /// struct WorkspaceConfig {
 ///     root: String,
 ///     name: String,
 /// }
 ///
-/// // Generated PKL class name
+/// // Generated Pkl class name
 /// let pkl_class_name = type_name_to_pkl("WorkspaceConfig"); // "Workspace"
 ///
-/// // Results in PKL schema:
+/// // Results in Pkl schema:
 /// // class Workspace {
 /// //   root: String
 /// //   name: String
@@ -676,11 +676,11 @@ pub fn capitalize_first_letter(s: &str) -> String {
 ///
 /// # Integration
 ///
-/// Used throughout the PKL schema generation:
-/// - **Type name processing**: Converting Rust type names to PKL class names
-/// - **Template generation**: Creating clean, readable PKL class names
+/// Used throughout the Pkl schema generation:
+/// - **Type name processing**: Converting Rust type names to Pkl class names
+/// - **Template generation**: Creating clean, readable Pkl class names
 /// - **Schema organization**: Ensuring consistent naming across generated schemas
-/// - **Documentation**: Providing meaningful names in generated PKL documentation
+/// - **Documentation**: Providing meaningful names in generated Pkl documentation
 pub fn type_name_to_pkl(name: &str) -> String {
     // Remove common Rust type prefixes/suffixes
     let cleaned = name
@@ -691,14 +691,14 @@ pub fn type_name_to_pkl(name: &str) -> String {
     capitalize_first_letter(cleaned)
 }
 
-/// Validates whether a string is a valid PKL identifier according to PKL syntax rules.
+/// Validates whether a string is a valid Pkl identifier according to Pkl syntax rules.
 ///
-/// This function checks if a given string conforms to PKL identifier naming rules,
-/// which are essential for generating valid PKL schemas. It ensures that property
-/// names, class names, and other identifiers used in generated PKL code are
-/// syntactically correct and will be accepted by the PKL parser.
+/// This function checks if a given string conforms to Pkl identifier naming rules,
+/// which are essential for generating valid Pkl schemas. It ensures that property
+/// names, class names, and other identifiers used in generated Pkl code are
+/// syntactically correct and will be accepted by the Pkl parser.
 ///
-/// # PKL Identifier Rules
+/// # Pkl Identifier Rules
 ///
 /// ## First Character Requirements
 /// - **Letters**: Any Unicode letter (a-z, A-Z, and international characters)
@@ -719,7 +719,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
 ///
 /// # Examples
 ///
-/// ## Valid PKL Identifiers
+/// ## Valid Pkl Identifiers
 /// ```rust
 /// use space_pkl::utils::is_valid_pkl_identifier;
 ///
@@ -741,7 +741,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
 /// assert!(is_valid_pkl_identifier("mixed_Case123"));
 /// ```
 ///
-/// ## Invalid PKL Identifiers
+/// ## Invalid Pkl Identifiers
 /// ```rust
 /// use space_pkl::utils::is_valid_pkl_identifier;
 ///
@@ -775,7 +775,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
 /// assert!(is_valid_pkl_identifier("test１２３")); // Full-width numbers
 /// ```
 ///
-/// ## PKL Schema Validation Context
+/// ## Pkl Schema Validation Context
 /// ```rust
 /// use space_pkl::utils::{is_valid_pkl_identifier, rust_to_pkl_identifier};
 ///
@@ -788,7 +788,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
 ///             "Converted property '{}' should be valid", pkl_prop);
 /// }
 ///
-/// // Results in valid PKL properties:
+/// // Results in valid Pkl properties:
 /// // userName, apiKey, maxConnections
 /// ```
 ///
@@ -820,7 +820,7 @@ pub fn type_name_to_pkl(name: &str) -> String {
 ///
 /// # Error Prevention
 ///
-/// This function helps prevent PKL syntax errors by catching invalid identifiers
+/// This function helps prevent Pkl syntax errors by catching invalid identifiers
 /// before they're used in generated schemas:
 ///
 /// ```rust
@@ -830,18 +830,18 @@ pub fn type_name_to_pkl(name: &str) -> String {
 ///     if is_valid_pkl_identifier(name) {
 ///         Ok(name.to_string())
 ///     } else {
-///         Err(format!("Invalid PKL identifier: '{}'", name))
+///         Err(format!("Invalid Pkl identifier: '{}'", name))
 ///     }
 /// }
 /// ```
 ///
 /// # Integration
 ///
-/// Used throughout the PKL generation pipeline:
+/// Used throughout the Pkl generation pipeline:
 /// - **Property validation**: Ensuring converted property names are valid
 /// - **Class name validation**: Checking generated class names
 /// - **Template processing**: Validating identifiers before template rendering
-/// - **Error prevention**: Catching invalid names before PKL generation
+/// - **Error prevention**: Catching invalid names before Pkl generation
 /// - **Testing**: Validating generated schemas in test suites
 pub fn is_valid_pkl_identifier(name: &str) -> bool {
     if name.is_empty() {

@@ -1,8 +1,14 @@
+#![warn(missing_docs)]
+#![doc(html_root_url = "https://docs.rs/space-pkl")]
+//!
 //! # space-pkl
 //!
-//! Pkl schema and template generation for Moon workspace configurations.
+//! Space-pkl is a **library** and **CLI tool** that provides Pkl schema generation, and template generation for Moon workspace configurations.
 //!
-//! This crate provides utilities to generate Pkl schemas and templates from Moon's
+//! This documentation focuses on using space-pkl as a library.
+//! For CLI usage, refer to the README at [space-pkl](https://github.com/knitli/space-pkl).
+//!
+//! It provides utilities to generate Pkl schemas and templates from Moon's
 //! configuration types, enabling type-safe configuration authoring in Pkl format.
 //! It bridges the gap between Moon's Rust-based configuration system and Pkl's
 //! configuration language, allowing teams to author configurations with full
@@ -142,7 +148,7 @@ pub mod prelude {
     /// Main schema generator and convenience functions.
     pub use crate::generator::*;
 
-    /// PKL type definitions for advanced usage.
+    /// Pkl type definitions for advanced usage.
     pub use crate::types::*;
 }
 

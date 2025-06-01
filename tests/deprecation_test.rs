@@ -57,7 +57,7 @@ async fn test_template_renders_deprecated_class() -> Result<()> {
         "Should contain deprecated class name"
     );
 
-    println!("Rendered PKL with deprecated class:");
+    println!("Rendered Pkl with deprecated class:");
     println!("{}", rendered);
 
     Ok(())
@@ -130,7 +130,7 @@ async fn test_template_renders_deprecated_property() -> Result<()> {
         "Should contain normal field name"
     );
 
-    println!("Rendered PKL with deprecated property:");
+    println!("Rendered Pkl with deprecated property:");
     println!("{}", rendered);
 
     Ok(())
@@ -202,7 +202,7 @@ async fn test_deprecated_property_filtering() -> Result<()> {
         "Should contain normal field name"
     );
 
-    println!("Rendered PKL with include_deprecated=false:");
+    println!("Rendered Pkl with include_deprecated=false:");
     println!("{}", rendered);
 
     Ok(())

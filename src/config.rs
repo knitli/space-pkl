@@ -1,6 +1,6 @@
 //! Configuration Module
 //!
-//! This module provides configuration types that control how PKL schemas are generated
+//! This module provides configuration types that control how Pkl schemas are generated
 //! from Moon configuration types. It offers fine-grained control over output formatting,
 //! content inclusion, and template customization.
 //!
@@ -14,8 +14,8 @@
 //!
 //! - **Content Control**: Choose what to include (comments, examples, validation)
 //! - **Output Customization**: Custom headers, footers, and module organization
-//! - **Type Mapping**: Override default Rust-to-PKL type mappings
-//! - **Template System**: Customize PKL output format and structure
+//! - **Type Mapping**: Override default Rust-to-Pkl type mappings
+//! - **Template System**: Customize Pkl output format and structure
 //! - **File Organization**: Single-file or multi-file output strategies
 //!
 //! # Quick Start
@@ -62,7 +62,7 @@
 //!     include_examples: false,
 //!     include_deprecated: false, // Clean output for production
 //!     split_types: false,        // Single file for deployment
-//!     header: Some("// Production PKL Schema\n".to_string()),
+//!     header: Some("// Production Pkl Schema\n".to_string()),
 //!     ..Default::default()
 //! };
 //! ```
@@ -75,10 +75,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Configuration for PKL schema generation.
+/// Configuration for Pkl schema generation.
 ///
 /// `GeneratorConfig` controls all aspects of how Moon configuration types are
-/// converted to PKL schemas. It provides comprehensive control over content
+/// converted to Pkl schemas. It provides comprehensive control over content
 /// inclusion, output formatting, and file organization.
 ///
 /// # Content Control
@@ -86,16 +86,16 @@ use std::path::PathBuf;
 /// Fine-tune what gets included in the generated schemas:
 /// - **Comments**: Include documentation from Rust source code
 /// - **Examples**: Generate realistic usage examples for properties
-/// - **Validation**: Include PKL constraints for type validation
+/// - **Validation**: Include Pkl constraints for type validation
 /// - **Deprecated Items**: Choose whether to include deprecated fields/types
 ///
 /// # Output Customization
 ///
 /// Control the structure and formatting of generated files:
 /// - **Headers/Footers**: Add custom content to all generated files
-/// - **Module Names**: Customize the PKL module naming scheme
+/// - **Module Names**: Customize the Pkl module naming scheme
 /// - **File Organization**: Single-file vs. multi-file output strategies
-/// - **Type Mappings**: Override default Rust-to-PKL type conversions
+/// - **Type Mappings**: Override default Rust-to-Pkl type conversions
 ///
 /// # Examples
 ///
@@ -155,7 +155,7 @@ pub struct GeneratorConfig {
     /// Whether to include comments in generated schemas.
     ///
     /// When `true`, documentation comments from Rust source code are converted
-    /// to PKL doc comments, providing rich inline documentation.
+    /// to Pkl doc comments, providing rich inline documentation.
     ///
     /// # Example Output Difference
     /// ```pkl
@@ -185,7 +185,7 @@ pub struct GeneratorConfig {
     /// Whether to include validation constraints in type definitions.
     ///
     /// When `true`, converts Rust validation rules (like `#[validate]`)
-    /// into PKL constraint syntax for runtime validation.
+    /// into Pkl constraint syntax for runtime validation.
     ///
     /// # Example Output
     /// ```pkl
@@ -210,7 +210,7 @@ pub struct GeneratorConfig {
     /// ```rust
     /// # use space_pkl::prelude::*;
     /// let config = GeneratorConfig {
-    ///     header: Some("// Generated PKL Schema\n// DO NOT EDIT MANUALLY\n".to_string()),
+    ///     header: Some("// Generated Pkl Schema\n// DO NOT EDIT MANUALLY\n".to_string()),
     ///     ..Default::default()
     /// };
     /// ```
@@ -219,22 +219,22 @@ pub struct GeneratorConfig {
     /// Custom footer content appended to all generated files.
     ///
     /// Can be used for additional documentation, validation rules,
-    /// or custom PKL code that should appear in every schema file.
+    /// or custom Pkl code that should appear in every schema file.
     pub footer: Option<String>,
 
     /// Output directory for generated schema files.
     ///
-    /// All PKL files will be written to this directory. The directory
+    /// All Pkl files will be written to this directory. The directory
     /// will be created if it doesn't exist.
     ///
     /// # Default
     /// `./pkl-schemas`
     pub output_dir: PathBuf,
 
-    /// Module name used in PKL module declarations.
+    /// Module name used in Pkl module declarations.
     ///
-    /// This name appears in PKL `module` declarations and affects
-    /// how schemas can be imported by other PKL files.
+    /// This name appears in Pkl `module` declarations and affects
+    /// how schemas can be imported by other Pkl files.
     ///
     /// # Default
     /// `"moon"`
@@ -246,7 +246,7 @@ pub struct GeneratorConfig {
     /// - `false`: Combines all schemas into a single module file
     ///
     /// # Multi-file Output (split_types: true)
-    /// ```
+    /// ```text
     /// pkl-schemas/
     /// ├── workspace.pkl
     /// ├── project.pkl
@@ -257,16 +257,16 @@ pub struct GeneratorConfig {
     /// ```
     ///
     /// # Single-file Output (split_types: false)
-    /// ```
+    /// ```text
     /// pkl-schemas/
     /// └── moon.pkl
     /// ```
     pub split_types: bool,
 
-    /// Custom mappings from Rust types to PKL type names.
+    /// Custom mappings from Rust types to Pkl type names.
     ///
     /// Allows overriding the default type conversion rules. Keys are the
-    /// default PKL type names, values are the replacement names.
+    /// default Pkl type names, values are the replacement names.
     ///
     /// # Example
     /// ```rust
@@ -281,13 +281,13 @@ pub struct GeneratorConfig {
     ///     type_mappings: mappings,
     ///     ..Default::default()
     /// };
-    /// // Now String fields become Text fields in PKL output
+    /// // Now String fields become Text fields in Pkl output
     /// ```
     pub type_mappings: HashMap<String, String>,
 
-    /// Template engine configuration for customizing PKL output format.
+    /// Template engine configuration for customizing Pkl output format.
     ///
-    /// Controls how the generated PKL types are formatted and rendered
+    /// Controls how the generated Pkl types are formatted and rendered
     /// into the final schema files.
     pub template: TemplateConfig,
 }
@@ -310,17 +310,17 @@ impl Default for GeneratorConfig {
     }
 }
 
-/// Template configuration for customizing PKL schema output format.
+/// Template configuration for customizing Pkl schema output format.
 ///
 /// `TemplateConfig` controls the template engine that formats and renders
-/// PKL type definitions into final schema files. It provides extensive
+/// Pkl type definitions into final schema files. It provides extensive
 /// customization options for output formatting, file organization, and
 /// template-driven code generation.
 ///
 /// # Template System Overview
 ///
 /// The template system uses a configurable engine to transform internal
-/// type representations into PKL syntax. You can:
+/// type representations into Pkl syntax. You can:
 /// - Override default templates for specific type patterns
 /// - Provide custom formatting for complex types
 /// - Control file naming and organization
@@ -384,7 +384,7 @@ pub struct TemplateConfig {
     /// default templates.
     ///
     /// # Template File Structure
-    /// ```
+    /// ```text
     /// template_dir/
     /// ├── type.pkl.hbs        # Type definition template
     /// ├── module.pkl.hbs      # Module structure template
@@ -408,7 +408,7 @@ pub struct TemplateConfig {
     ///
     /// Maps type names to custom template identifiers or template content.
     /// This allows fine-grained control over how specific types are rendered
-    /// in the generated PKL schemas.
+    /// in the generated Pkl schemas.
     ///
     /// # Key-Value Format
     /// - **Key**: The type name to match (e.g., "String", "ConfigObject")
@@ -430,14 +430,14 @@ pub struct TemplateConfig {
     /// ```
     pub custom_templates: HashMap<String, String>,
 
-    /// Whether to generate template files alongside PKL schemas.
+    /// Whether to generate template files alongside Pkl schemas.
     ///
     /// When `true`, creates template files that can be used as starting
     /// points for configuration authoring. These templates contain
     /// realistic example values and comprehensive documentation.
     ///
     /// # Generated Template Structure
-    /// ```
+    /// ```text
     /// output_dir/
     /// ├── workspace.pkl          # Schema definitions
     /// ├── workspace.template.pkl # Usage template with examples
@@ -458,7 +458,7 @@ pub struct TemplateConfig {
     /// - Template files: `{type}.template.{extension}`
     ///
     /// # Common Extensions
-    /// - `"pkl"` (default) - Standard PKL files
+    /// - `"pkl"` (default) - Standard Pkl files
     /// - `"pkl.template"` - Template-specific extension
     /// - `"config"` - Generic configuration files
     ///
@@ -493,7 +493,7 @@ impl Default for TemplateConfig {
 ///
 /// # Schema Types
 ///
-/// Each schema type generates PKL definitions for a specific configuration area:
+/// Each schema type generates Pkl definitions for a specific configuration area:
 /// - **Workspace**: Top-level workspace settings and global configuration
 /// - **Project**: Individual project configuration and metadata
 /// - **Template**: Project template definitions and scaffolding rules
@@ -504,7 +504,7 @@ impl Default for TemplateConfig {
 /// # File Organization
 ///
 /// Each schema type maps to specific output files:
-/// ```
+/// ```text
 /// pkl-schemas/
 /// ├── workspace.pkl   # Workspace configuration
 /// ├── project.pkl     # Project configuration
@@ -550,7 +550,7 @@ impl Default for TemplateConfig {
 ///
 /// # Schema Content
 ///
-/// Each schema type includes relevant PKL type definitions:
+/// Each schema type includes relevant Pkl type definitions:
 ///
 /// ## Workspace Schema
 /// - Global workspace settings
@@ -585,7 +585,7 @@ impl Default for TemplateConfig {
 pub enum SchemaType {
     /// Workspace configuration schema.
     ///
-    /// Generates PKL types for top-level workspace configuration including
+    /// Generates Pkl types for top-level workspace configuration including
     /// global settings, project discovery rules, and workspace-wide defaults.
     ///
     /// # Generated Types
@@ -600,7 +600,7 @@ pub enum SchemaType {
 
     /// Project configuration schema.
     ///
-    /// Generates PKL types for individual project configuration including
+    /// Generates Pkl types for individual project configuration including
     /// metadata, build settings, dependencies, and project-specific overrides.
     ///
     /// # Generated Types
@@ -615,7 +615,7 @@ pub enum SchemaType {
 
     /// Template configuration schema.
     ///
-    /// Generates PKL types for project template definitions including
+    /// Generates Pkl types for project template definitions including
     /// template metadata, variable substitution, and file generation rules.
     ///
     /// # Generated Types
@@ -630,7 +630,7 @@ pub enum SchemaType {
 
     /// Toolchain configuration schema.
     ///
-    /// Generates PKL types for development toolchain management including
+    /// Generates Pkl types for development toolchain management including
     /// tool versions, installation settings, and integration configuration.
     ///
     /// # Generated Types
@@ -645,7 +645,7 @@ pub enum SchemaType {
 
     /// Tasks configuration schema.
     ///
-    /// Generates PKL types for task definitions including execution settings,
+    /// Generates Pkl types for task definitions including execution settings,
     /// dependencies, input/output specifications, and scheduling configuration.
     ///
     /// # Generated Types
@@ -682,7 +682,7 @@ pub enum SchemaType {
 impl SchemaType {
     /// Get the output filename for this schema type.
     ///
-    /// Returns the standard filename used when generating PKL schema files
+    /// Returns the standard filename used when generating Pkl schema files
     /// for this configuration type. The filename follows the pattern
     /// `{type}.pkl` where `{type}` is the lowercase schema type name.
     ///
@@ -719,11 +719,11 @@ impl SchemaType {
         }
     }
 
-    /// Get the PKL module name for this schema type.
+    /// Get the Pkl module name for this schema type.
     ///
-    /// Returns the standard module name used in PKL `module` declarations
+    /// Returns the standard module name used in Pkl `module` declarations
     /// for this configuration type. The module name follows PascalCase
-    /// convention for PKL modules.
+    /// convention for Pkl modules.
     ///
     /// # Returns
     /// A static string containing the PascalCase module name.
@@ -739,8 +739,8 @@ impl SchemaType {
     /// assert_eq!(SchemaType::Tasks.module_name(), "Tasks");
     /// ```
     ///
-    /// # PKL Module Declaration
-    /// The module name is used in generated PKL files like this:
+    /// # Pkl Module Declaration
+    /// The module name is used in generated Pkl files like this:
     /// ```pkl
     /// module Workspace
     ///
@@ -767,11 +767,11 @@ impl SchemaType {
     }
 }
 
-/// Generate the default header content for PKL schema files.
+/// Generate the default header content for Pkl schema files.
 ///
 /// Creates a comprehensive header that includes version information,
 /// project links, and usage documentation. The header provides context
-/// about the generated schemas and their relationship to Moon and PKL.
+/// about the generated schemas and their relationship to Moon and Pkl.
 ///
 /// # Header Content
 /// - Project and tool identification
@@ -813,11 +813,11 @@ fn default_header() -> String {
     )
 }
 
-/// Generate default Rust-to-PKL type mappings.
+/// Generate default Rust-to-Pkl type mappings.
 ///
 /// Creates a comprehensive mapping table that translates common Rust types
-/// to their equivalent PKL type representations. This ensures consistent
-/// and idiomatic PKL type usage across all generated schemas.
+/// to their equivalent Pkl type representations. This ensures consistent
+/// and idiomatic Pkl type usage across all generated schemas.
 ///
 /// # Mapping Categories
 ///
@@ -851,8 +851,8 @@ fn default_header() -> String {
 ///
 /// # Returns
 /// A `HashMap` containing default type mappings from Rust type names
-/// to PKL type names.
-fn default_type_mappings() -> HashMap<String, String> {
+/// to Pkl type names.
+pub fn default_type_mappings() -> HashMap<String, String> {
     let mut mappings = HashMap::new();
 
     // Common Rust -> Pkl type mappings
@@ -1094,8 +1094,14 @@ mod tests {
     fn test_template_config_with_complex_mappings() {
         let mut custom_templates = HashMap::new();
         custom_templates.insert("ClassTemplate".to_string(), "class_custom.hbs".to_string());
-        custom_templates.insert("ModuleTemplate".to_string(), "module_custom.hbs".to_string());
-        custom_templates.insert("PropertyTemplate".to_string(), "property_custom.hbs".to_string());
+        custom_templates.insert(
+            "ModuleTemplate".to_string(),
+            "module_custom.hbs".to_string(),
+        );
+        custom_templates.insert(
+            "PropertyTemplate".to_string(),
+            "property_custom.hbs".to_string(),
+        );
 
         let config = TemplateConfig {
             template_dir: Some(PathBuf::from("/usr/local/templates")),
@@ -1105,7 +1111,10 @@ mod tests {
         };
 
         assert_eq!(config.custom_templates.len(), 3);
-        assert_eq!(config.custom_templates.get("ClassTemplate"), Some(&"class_custom.hbs".to_string()));
+        assert_eq!(
+            config.custom_templates.get("ClassTemplate"),
+            Some(&"class_custom.hbs".to_string())
+        );
         assert_eq!(config.template_extension, "handlebars");
         assert!(config.generate_templates);
     }
@@ -1133,7 +1142,10 @@ mod tests {
         };
 
         assert_eq!(config.type_mappings.len(), 1000);
-        assert_eq!(config.type_mappings.get("Type500"), Some(&"PklType500".to_string()));
+        assert_eq!(
+            config.type_mappings.get("Type500"),
+            Some(&"PklType500".to_string())
+        );
     }
 
     #[test]
@@ -1275,13 +1287,21 @@ mod tests {
         // Check that all basic Rust types are mapped
         let expected_rust_types = ["String", "bool", "i32", "i64", "u32", "u64", "f32", "f64"];
         for rust_type in &expected_rust_types {
-            assert!(mappings.contains_key(*rust_type), "Missing mapping for {}", rust_type);
+            assert!(
+                mappings.contains_key(*rust_type),
+                "Missing mapping for {}",
+                rust_type
+            );
         }
 
         // Check that all basic collection types are mapped
         let expected_collections = ["Vec", "HashMap", "BTreeMap", "Option"];
         for collection in &expected_collections {
-            assert!(mappings.contains_key(*collection), "Missing mapping for {}", collection);
+            assert!(
+                mappings.contains_key(*collection),
+                "Missing mapping for {}",
+                collection
+            );
         }
     }
 
@@ -1310,7 +1330,9 @@ mod tests {
         config.module_name = "updated".to_string();
         assert_eq!(config.module_name, "updated");
 
-        config.type_mappings.insert("NewType".to_string(), "PklNewType".to_string());
+        config
+            .type_mappings
+            .insert("NewType".to_string(), "PklNewType".to_string());
         assert!(config.type_mappings.contains_key("NewType"));
     }
 }

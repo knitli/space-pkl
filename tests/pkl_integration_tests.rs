@@ -3,11 +3,11 @@ use std::path::Path;
 use std::process::Command;
 use tempfile::TempDir;
 
-/// Test that all PKL schemas can be parsed without errors
+/// Test that all Pkl schemas can be parsed without errors
 #[test]
 fn test_pkl_schemas_parse_successfully() {
     let schema_dir = Path::new("test-schemas");
-    assert!(schema_dir.exists(), "PKL schemas directory should exist");
+    assert!(schema_dir.exists(), "Pkl schemas directory should exist");
 
     let schema_files = [
         "workspace.pkl",
@@ -36,39 +36,39 @@ fn test_pkl_schemas_parse_successfully() {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            panic!("PKL parsing failed for {}: {}", schema_file, stderr);
+            panic!("Pkl parsing failed for {}: {}", schema_file, stderr);
         }
     }
 }
 
-/// Test that PKL test files execute successfully
+/// Test that Pkl test files execute successfully
 #[test]
 fn test_pkl_test_suite() {
     let test_script = Path::new("scripts/run-pkl-tests.sh");
-    assert!(test_script.exists(), "PKL test runner script should exist");
+    assert!(test_script.exists(), "Pkl test runner script should exist");
 
     let output = Command::new("bash")
         .arg(test_script)
         .output()
-        .expect("Failed to execute PKL test script");
+        .expect("Failed to execute Pkl test script");
 
     if !output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
         panic!(
-            "PKL tests failed:\nSTDOUT:\n{}\nSTDERR:\n{}",
+            "Pkl tests failed:\nSTDOUT:\n{}\nSTDERR:\n{}",
             stdout, stderr
         );
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("All PKL tests passed"),
-        "PKL test suite should pass"
+        stdout.contains("All Pkl tests passed"),
+        "Pkl test suite should pass"
     );
 }
 
-/// Test specific PKL schema validation
+/// Test specific Pkl schema validation
 #[test]
 fn test_workspace_schema_validation() {
     let workspace_schema = Path::new("pkl-schemas/workspace.pkl");
@@ -227,7 +227,7 @@ output {{ invalid: invalidConfig }}
     );
 }
 
-/// Test PKL schema imports and module relationships
+/// Test Pkl schema imports and module relationships
 #[test]
 fn test_schema_imports() {
     let mod_schema = Path::new("pkl-schemas/mod.pkl");
@@ -286,7 +286,7 @@ facts {{
     println!("Schema imports test passed successfully");
 }
 
-/// Test PKL type constraints and enums
+/// Test Pkl type constraints and enums
 #[test]
 fn test_type_constraints() {
     let project_schema = Path::new("pkl-schemas/project.pkl");
@@ -334,7 +334,7 @@ facts {{
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         panic!(
-            "Valid enum values should be accepted. PKL error: {}",
+            "Valid enum values should be accepted. Pkl error: {}",
             stderr
         );
     }
@@ -372,7 +372,7 @@ output {{ invalid: invalidConfig }}
     );
 }
 
-/// Benchmark PKL schema parsing performance
+/// Benchmark Pkl schema parsing performance
 #[test]
 fn test_pkl_performance() {
     let workspace_schema = Path::new("pkl-schemas/workspace.pkl");
@@ -390,18 +390,18 @@ fn test_pkl_performance() {
             .output()
             .expect("Failed to execute pkl command");
 
-        assert!(output.status.success(), "PKL parsing should succeed");
+        assert!(output.status.success(), "Pkl parsing should succeed");
     }
 
     let duration = start.elapsed();
     println!(
-        "PKL schema parsing performance: {:?} for 10 iterations",
+        "Pkl schema parsing performance: {:?} for 10 iterations",
         duration
     );
 
     // Ensure reasonable performance (less than 10 seconds for 10 iterations)
     assert!(
         duration.as_secs() < 10,
-        "PKL parsing should be reasonably fast"
+        "Pkl parsing should be reasonably fast"
     );
 }

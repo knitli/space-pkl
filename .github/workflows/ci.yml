@@ -41,7 +41,7 @@ jobs:
           ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-
           ${{ runner.os }}-cargo-
 
-    - name: Install PKL CLI
+    - name: Install Pkl CLI
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           if [[ "${{ runner.arch }}" == "ARM64" ]]; then
@@ -59,7 +59,7 @@ jobs:
         fi
 
         PKL_URL="https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-${PKL_ARCH}"
-        echo "Downloading PKL from: $PKL_URL"
+        echo "Downloading Pkl from: $PKL_URL"
 
         if [[ "${{ runner.os }}" == "Windows" ]]; then
           curl -L -o pkl.exe "$PKL_URL"
@@ -95,7 +95,7 @@ jobs:
     - name: Run tests with all features
       run: cargo test --all-features --verbose
 
-    - name: Run PKL integration tests
+    - name: Run Pkl integration tests
       run: |
         # Make sure the test script is executable
         chmod +x ./scripts/run-pkl-tests.sh
@@ -145,7 +145,7 @@ jobs:
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
 
-    - name: Install PKL CLI
+    - name: Install Pkl CLI
       run: |
         curl -L -o pkl 'https://github.com/apple/pkl/releases/download/0.28.2/pkl-linux-amd64'
         chmod +x pkl

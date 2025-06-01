@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+#![doc(html_root_url = "https://docs.rs/space-pkl")]
 //! `main.rs` - CLI entry point for space-pkl
 //! CLI for space-pkl - Pkl schema generation for Moon configurations.
 //!

@@ -1,12 +1,12 @@
 //! Schema Generator Module
 //!
-//! This module provides the core functionality for generating PKL configuration schemas
+//! This module provides the core functionality for generating Pkl configuration schemas
 //! from Moon configuration types. It converts Rust configuration structures into
-//! strongly-typed PKL modules with validation, examples, and comprehensive documentation.
+//! strongly-typed Pkl modules with validation, examples, and comprehensive documentation.
 //!
 //! # Features
 //!
-//! - **Automated Schema Generation**: Converts Moon configuration types to PKL schemas
+//! - **Automated Schema Generation**: Converts Moon configuration types to Pkl schemas
 //! - **Type-Safe Conversion**: Preserves type safety and validation rules
 //! - **Comprehensive Examples**: Generates realistic examples for all schema types
 //! - **Validation Support**: Includes constraints, patterns, and enum validations
@@ -14,7 +14,7 @@
 //!
 //! # Core Components
 //!
-//! - [`SchemaGenerator`] - Main generator for converting configurations to PKL
+//! - [`SchemaGenerator`] - Main generator for converting configurations to Pkl
 //! - Type conversion methods for different schema patterns (structs, enums, unions)
 //! - Template integration for customizable output formatting
 //! - Constraint extraction for validation rules
@@ -51,7 +51,7 @@
 //!     include_validation: true,
 //!     output_dir: PathBuf::from("./custom-schemas"),
 //!     module_name: "my_project".to_string(),
-//!     header: Some("// Custom PKL Schema\n".to_string()),
+//!     header: Some("// Custom Pkl Schema\n".to_string()),
 //!     ..Default::default()
 //! };
 //!
@@ -61,12 +61,12 @@
 //! # }
 //! ```
 //!
-//! # Generated PKL Structure
+//! # Generated Pkl Structure
 //!
-//! The generator creates PKL modules with:
+//! The generator creates Pkl modules with:
 //!
 //! - **Type Definitions**: Classes and type aliases for all configuration types
-//! - **Property Constraints**: Validation rules using PKL's constraint system
+//! - **Property Constraints**: Validation rules using Pkl's constraint system
 //! - **Documentation**: Comprehensive doc comments from Rust source
 //! - **Examples**: Usage examples for each property
 //!
@@ -90,16 +90,16 @@ use tracing::{debug, info, warn};
 /// Core schema generator for Moon configurations.
 ///
 /// The `SchemaGenerator` is the main entry point for converting Moon configuration
-/// types into PKL schemas. It handles the complete workflow from Rust type introspection
-/// to PKL module generation, including template rendering and file output.
+/// types into Pkl schemas. It handles the complete workflow from Rust type introspection
+/// to Pkl module generation, including template rendering and file output.
 ///
 /// # Architecture
 ///
 /// The generator uses a multi-stage conversion process:
 /// 1. **Type Analysis**: Uses `schematic` to introspect Rust configuration types
-/// 2. **Schema Conversion**: Converts schematic schemas to PKL type definitions
-/// 3. **Template Rendering**: Applies PKL template formatting with custom rules
-/// 4. **File Generation**: Outputs formatted PKL files with proper structure
+/// 2. **Schema Conversion**: Converts schematic schemas to Pkl type definitions
+/// 3. **Template Rendering**: Applies Pkl template formatting with custom rules
+/// 4. **File Generation**: Outputs formatted Pkl files with proper structure
 ///
 /// # Thread Safety
 ///
@@ -134,7 +134,7 @@ use tracing::{debug, info, warn};
 /// let project_pkl = generator.generate_project_schema()?;
 /// let toolchain_pkl = generator.generate_toolchain_schema()?;
 ///
-/// // Use the generated PKL strings as needed
+/// // Use the generated Pkl strings as needed
 /// println!("Generated {} chars of workspace schema", workspace_pkl.len());
 /// # Ok(())
 /// # }
@@ -153,7 +153,7 @@ use tracing::{debug, info, warn};
 ///     include_deprecated: false, // Skip deprecated fields
 ///     output_dir: PathBuf::from("./my-schemas"),
 ///     module_name: "my_project".to_string(),
-///     header: Some("// Generated Moon PKL Schema\n".to_string()),
+///     header: Some("// Generated Moon Pkl Schema\n".to_string()),
 ///     ..Default::default()
 /// };
 ///
@@ -276,9 +276,9 @@ impl SchemaGenerator {
         Ok(())
     }
 
-    /// Generates a PKL schema for Moon workspace configuration.
+    /// Generates a Pkl schema for Moon workspace configuration.
     ///
-    /// Creates a comprehensive PKL module for `WorkspaceConfig` including all
+    /// Creates a comprehensive Pkl module for `WorkspaceConfig` including all
     /// workspace-level settings, project discovery rules, and tool configurations.
     ///
     /// # Generated Schema Includes
@@ -291,7 +291,7 @@ impl SchemaGenerator {
     ///
     /// # Returns
     ///
-    /// A `String` containing the complete PKL module definition ready for use.
+    /// A `String` containing the complete Pkl module definition ready for use.
     ///
     /// # Examples
     ///
@@ -302,7 +302,7 @@ impl SchemaGenerator {
     /// let generator = SchemaGenerator::new(GeneratorConfig::default());
     /// let workspace_pkl = generator.generate_workspace_schema()?;
     ///
-    /// // The generated PKL can be written to a file or used directly
+    /// // The generated Pkl can be written to a file or used directly
     /// println!("Generated workspace schema:\n{}", workspace_pkl);
     /// # Ok(())
     /// # }
@@ -331,9 +331,9 @@ impl SchemaGenerator {
         self.generate_schema_for_type::<WorkspaceConfig>("Workspace")
     }
 
-    /// Generates a PKL schema for Moon project configuration.
+    /// Generates a Pkl schema for Moon project configuration.
     ///
-    /// Creates a PKL module for `ProjectConfig` covering project-specific settings,
+    /// Creates a Pkl module for `ProjectConfig` covering project-specific settings,
     /// build configuration, dependency management, and task definitions.
     ///
     /// # Generated Schema Includes
@@ -353,8 +353,8 @@ impl SchemaGenerator {
     /// let generator = SchemaGenerator::new(GeneratorConfig::default());
     /// let project_pkl = generator.generate_project_schema()?;
     ///
-    /// // Save to file
-    /// std::fs::write("project.pkl", project_pkl)?;
+    /// // The generated Pkl schema is ready to use
+    /// assert!(!project_pkl.is_empty());
     /// # Ok(())
     /// # }
     /// ```
@@ -363,9 +363,9 @@ impl SchemaGenerator {
         self.generate_schema_for_type::<ProjectConfig>("Project")
     }
 
-    /// Generates a PKL schema for Moon template configuration.
+    /// Generates a Pkl schema for Moon template configuration.
     ///
-    /// Creates a PKL module for `TemplateConfig` used in project scaffolding
+    /// Creates a Pkl module for `TemplateConfig` used in project scaffolding
     /// and code generation workflows.
     ///
     /// # Generated Schema Includes
@@ -392,9 +392,9 @@ impl SchemaGenerator {
         self.generate_schema_for_type::<TemplateConfig>("Template")
     }
 
-    /// Generates a PKL schema for Moon toolchain configuration.
+    /// Generates a Pkl schema for Moon toolchain configuration.
     ///
-    /// Creates a PKL module for `ToolchainConfig` defining tool versions,
+    /// Creates a Pkl module for `ToolchainConfig` defining tool versions,
     /// installation preferences, and environment setup.
     ///
     /// # Generated Schema Includes
@@ -423,9 +423,9 @@ impl SchemaGenerator {
         self.generate_schema_for_type::<ToolchainConfig>("Toolchain")
     }
 
-    /// Generates a PKL schema for Moon task configuration.
+    /// Generates a Pkl schema for Moon task configuration.
     ///
-    /// Creates a PKL module for `InheritedTasksConfig` covering shared task
+    /// Creates a Pkl module for `InheritedTasksConfig` covering shared task
     /// definitions, inheritance patterns, and task execution settings.
     ///
     /// # Generated Schema Includes
@@ -455,12 +455,12 @@ impl SchemaGenerator {
         self.generate_schema_for_type::<InheritedTasksConfig>("Tasks")
     }
 
-    /// Internal method to generate a PKL schema for a specific configuration type.
+    /// Internal method to generate a Pkl schema for a specific configuration type.
     ///
     /// This is the core conversion method that:
     /// 1. Uses `schematic` to introspect the Rust configuration type `T`
-    /// 2. Converts the generated schemas to PKL type representations
-    /// 3. Renders the final PKL module using the template engine
+    /// 2. Converts the generated schemas to Pkl type representations
+    /// 3. Renders the final Pkl module using the template engine
     ///
     /// # Type Parameters
     ///
@@ -472,7 +472,7 @@ impl SchemaGenerator {
     ///
     /// # Returns
     ///
-    /// The complete PKL module as a formatted string.
+    /// The complete Pkl module as a formatted string.
     ///
     /// # Implementation Details
     ///
@@ -571,10 +571,10 @@ impl SchemaGenerator {
         Ok(())
     }
 
-    /// Converts a collection of schematic schemas into a complete PKL module.
+    /// Converts a collection of schematic schemas into a complete Pkl module.
     ///
     /// This method orchestrates the conversion from raw schema data to a structured
-    /// PKL module representation. It handles type dependency resolution, export
+    /// Pkl module representation. It handles type dependency resolution, export
     /// generation, and module organization.
     ///
     /// # Arguments
@@ -595,10 +595,10 @@ impl SchemaGenerator {
     ///
     /// # Type Classification
     ///
-    /// - `Struct` → PKL `Class` with properties and constraints
-    /// - `Enum` → PKL `TypeAlias` with union of literal values
-    /// - `Union` → PKL `TypeAlias` with type alternatives
-    /// - `Reference` → PKL `Class` referencing external types
+    /// - `Struct` → Pkl `Class` with properties and constraints
+    /// - `Enum` → Pkl `TypeAlias` with union of literal values
+    /// - `Union` → Pkl `TypeAlias` with type alternatives
+    /// - `Reference` → Pkl `Class` referencing external types
     fn convert_schemas_to_pkl(
         &self,
         schemas: indexmap::IndexMap<String, Schema>,
@@ -633,25 +633,25 @@ impl SchemaGenerator {
         Ok(module)
     }
 
-    /// Converts a single schematic schema into a PKL type definition.
+    /// Converts a single schematic schema into a Pkl type definition.
     ///
     /// This is the core type conversion method that handles the mapping from
-    /// schematic's type system to PKL's type system. It preserves semantic
-    /// meaning while adapting to PKL's syntax and capabilities.
+    /// schematic's type system to Pkl's type system. It preserves semantic
+    /// meaning while adapting to Pkl's syntax and capabilities.
     ///
     /// # Arguments
     ///
     /// * `schema` - The schematic schema to convert
-    /// * `name` - The name to use for the generated PKL type
+    /// * `name` - The name to use for the generated Pkl type
     ///
     /// # Returns
     ///
-    /// A `PklType` representing the schema in PKL's type system.
+    /// A `PklType` representing the schema in Pkl's type system.
     ///
     /// # Type Conversion Rules
     ///
     /// ## Struct Types
-    /// - Converted to PKL `Class` types
+    /// - Converted to Pkl `Class` types
     /// - Each field becomes a class property with appropriate type and constraints
     /// - Optional fields are marked with `?` nullable syntax
     /// - Deprecated fields are optionally included based on configuration
@@ -673,7 +673,7 @@ impl SchemaGenerator {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// // Struct with validation becomes PKL class
+    /// // Struct with validation becomes Pkl class
     /// struct Config {
     ///     name: String,      // → name: String
     ///     port: Option<u16>, // → port: Int?
@@ -811,7 +811,7 @@ impl SchemaGenerator {
         Ok(pkl_type)
     }
 
-    /// Converts a struct field from schematic into a PKL property definition.
+    /// Converts a struct field from schematic into a Pkl property definition.
     ///
     /// This method handles the complete conversion of a field including its type,
     /// validation constraints, default values, examples, and metadata.
@@ -827,8 +827,8 @@ impl SchemaGenerator {
     ///
     /// # Conversion Features
     ///
-    /// - **Type Mapping**: Rust types mapped to appropriate PKL types
-    /// - **Constraint Extraction**: Validation rules become PKL constraints
+    /// - **Type Mapping**: Rust types mapped to appropriate Pkl types
+    /// - **Constraint Extraction**: Validation rules become Pkl constraints
     /// - **Default Values**: Sensible defaults generated for different types
     /// - **Examples**: Realistic example values for documentation
     /// - **Deprecation**: Deprecated field information preserved
@@ -875,7 +875,7 @@ impl SchemaGenerator {
 
     /// Extracts sensible default values from schema type information.
     ///
-    /// Generates appropriate PKL default values based on the schema type and constraints.
+    /// Generates appropriate Pkl default values based on the schema type and constraints.
     /// This helps provide meaningful starting points for configuration values.
     ///
     /// # Arguments
@@ -884,7 +884,7 @@ impl SchemaGenerator {
     ///
     /// # Returns
     ///
-    /// An optional default value string in PKL syntax, or `None` if no sensible default exists.
+    /// An optional default value string in Pkl syntax, or `None` if no sensible default exists.
     ///
     /// # Default Generation Rules
     ///
@@ -959,9 +959,9 @@ impl SchemaGenerator {
         Ok(default_value)
     }
 
-    /// Extracts validation constraints from schema and converts them to PKL constraint syntax.
+    /// Extracts validation constraints from schema and converts them to Pkl constraint syntax.
     ///
-    /// This method analyzes schema validation rules and converts them into PKL's
+    /// This method analyzes schema validation rules and converts them into Pkl's
     /// constraint system, preserving validation semantics while adapting syntax.
     ///
     /// # Arguments
@@ -1149,7 +1149,7 @@ impl SchemaGenerator {
     /// Generates realistic example values for schema types to enhance documentation.
     ///
     /// Creates meaningful, contextually appropriate examples that help users understand
-    /// how to use configuration properties. Examples are formatted in valid PKL syntax.
+    /// how to use configuration properties. Examples are formatted in valid Pkl syntax.
     ///
     /// # Arguments
     ///
@@ -1157,7 +1157,7 @@ impl SchemaGenerator {
     ///
     /// # Returns
     ///
-    /// A vector of example value strings in PKL syntax.
+    /// A vector of example value strings in Pkl syntax.
     ///
     /// # Example Generation Strategy
     ///
@@ -1306,18 +1306,18 @@ impl SchemaGenerator {
         Ok(examples)
     }
 
-    /// Resolves the appropriate PKL type name for a given schema.
+    /// Resolves the appropriate Pkl type name for a given schema.
     ///
-    /// This method handles the complex mapping from schematic's type system to PKL's
+    /// This method handles the complex mapping from schematic's type system to Pkl's
     /// type names, including generic types, nullable patterns, and custom type mappings.
     ///
     /// # Arguments
     ///
-    /// * `schema` - The schema to resolve the PKL type name for
+    /// * `schema` - The schema to resolve the Pkl type name for
     ///
     /// # Returns
     ///
-    /// The PKL type name as a string, ready for use in PKL syntax.
+    /// The Pkl type name as a string, ready for use in Pkl syntax.
     ///
     /// # Type Resolution Rules
     ///
@@ -1455,7 +1455,7 @@ impl SchemaGenerator {
 ///
 /// # Returns
 ///
-/// A `String` containing the complete PKL workspace schema.
+/// A `String` containing the complete Pkl workspace schema.
 ///
 /// # Examples
 ///
@@ -1466,8 +1466,8 @@ impl SchemaGenerator {
 /// let workspace_pkl = generate_workspace_schema()?;
 /// println!("Generated workspace schema: {} characters", workspace_pkl.len());
 ///
-/// // Save to file
-/// std::fs::write("workspace.pkl", workspace_pkl)?;
+/// // The generated Pkl schema is ready to use
+/// assert!(!workspace_pkl.is_empty());
 /// # Ok(())
 /// # }
 /// ```
@@ -1475,19 +1475,19 @@ impl SchemaGenerator {
 /// # See Also
 ///
 /// - [`SchemaGenerator::generate_workspace_schema`] for custom configuration
-/// - [`generate_all_schemas`] for generating all schemas at once
+/// - [`SchemaGenerator::generate_all`] for generating all schemas at once
 pub fn generate_workspace_schema() -> Result<String> {
     SchemaGenerator::new(GeneratorConfig::default()).generate_workspace_schema()
 }
 
 /// Generates a project configuration schema using default settings.
 ///
-/// This convenience function creates a PKL schema for Moon project configuration
+/// This convenience function creates a Pkl schema for Moon project configuration
 /// without requiring manual setup of a `SchemaGenerator` instance.
 ///
 /// # Returns
 ///
-/// A `String` containing the complete PKL project schema with all project-level
+/// A `String` containing the complete Pkl project schema with all project-level
 /// configuration options including build settings, dependencies, and tasks.
 ///
 /// # Examples
@@ -1520,12 +1520,12 @@ pub fn generate_project_schema() -> Result<String> {
 
 /// Generates a template configuration schema using default settings.
 ///
-/// Creates a PKL schema for Moon template configuration used in project
+/// Creates a Pkl schema for Moon template configuration used in project
 /// scaffolding and code generation workflows.
 ///
 /// # Returns
 ///
-/// A `String` containing the PKL template schema with variable definitions,
+/// A `String` containing the Pkl template schema with variable definitions,
 /// file patterns, and template composition rules.
 ///
 /// # Examples
@@ -1539,8 +1539,8 @@ pub fn generate_project_schema() -> Result<String> {
 /// // Template schemas are typically smaller than project schemas
 /// println!("Template schema: {} bytes", template_pkl.len());
 ///
-/// // Save for use in template development
-/// std::fs::write("template.pkl", template_pkl)?;
+/// // The generated Pkl schema is ready for use in template development
+/// assert!(!template_pkl.is_empty());
 /// # Ok(())
 /// # }
 /// ```
@@ -1550,12 +1550,12 @@ pub fn generate_template_schema() -> Result<String> {
 
 /// Generates a toolchain configuration schema using default settings.
 ///
-/// Creates a PKL schema for Moon toolchain configuration covering tool versions,
+/// Creates a Pkl schema for Moon toolchain configuration covering tool versions,
 /// installation preferences, and environment setup.
 ///
 /// # Returns
 ///
-/// A `String` containing the PKL toolchain schema with tool definitions,
+/// A `String` containing the Pkl toolchain schema with tool definitions,
 /// version constraints, and environment configurations.
 ///
 /// # Examples
@@ -1587,12 +1587,12 @@ pub fn generate_toolchain_schema() -> Result<String> {
 
 /// Generates a tasks configuration schema using default settings.
 ///
-/// Creates a PKL schema for Moon task configuration including shared task
+/// Creates a Pkl schema for Moon task configuration including shared task
 /// definitions, inheritance patterns, and execution settings.
 ///
 /// # Returns
 ///
-/// A `String` containing the PKL tasks schema with task definitions,
+/// A `String` containing the Pkl tasks schema with task definitions,
 /// inheritance rules, and execution configuration.
 ///
 /// # Examples
@@ -1606,8 +1606,8 @@ pub fn generate_toolchain_schema() -> Result<String> {
 /// // Tasks schemas define reusable task configurations
 /// assert!(tasks_pkl.contains("InheritedTasksConfig"));
 ///
-/// // Use for shared task definitions across projects
-/// std::fs::write("tasks.pkl", tasks_pkl)?;
+/// // The generated Pkl schema is ready to use
+/// assert!(!tasks_pkl.is_empty());
 /// # Ok(())
 /// # }
 /// ```
