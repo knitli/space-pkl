@@ -26,6 +26,7 @@ async fn test_template_renders_deprecated_class() -> Result<()> {
             examples: vec![],
         }],
         enum_values: None,
+        open: true,
         extends: vec![],
         abstract_type: false,
     };
@@ -35,7 +36,6 @@ async fn test_template_renders_deprecated_class() -> Result<()> {
         documentation: Some("Test module".to_string()),
         types: vec![deprecated_class],
         imports: vec![],
-        exports: vec![],
         properties: vec![],
     };
 
@@ -49,8 +49,8 @@ async fn test_template_renders_deprecated_class() -> Result<()> {
 
     // Check that @Deprecated decorator is present for the class
     assert!(
-        rendered.contains("@Deprecated"),
-        "Should contain @Deprecated decorator for class"
+        rendered.contains("@Deprecated(\"This class is deprecated. Use NewConfig instead.\")"),
+        "Should contain @Deprecated with message for class"
     );
     assert!(
         rendered.contains("DeprecatedConfig"),
@@ -95,6 +95,7 @@ async fn test_template_renders_deprecated_property() -> Result<()> {
         documentation: Some("A test configuration class".to_string()),
         properties: vec![deprecated_property, normal_property],
         enum_values: None,
+        open: true,
         extends: vec![],
         abstract_type: false,
     };
@@ -104,7 +105,6 @@ async fn test_template_renders_deprecated_property() -> Result<()> {
         documentation: Some("Test module".to_string()),
         types: vec![test_class],
         imports: vec![],
-        exports: vec![],
         properties: vec![],
     };
 
@@ -118,8 +118,8 @@ async fn test_template_renders_deprecated_property() -> Result<()> {
 
     // Check that @Deprecated decorator is present for the deprecated property
     assert!(
-        rendered.contains("@Deprecated"),
-        "Should contain @Deprecated decorator for property"
+        rendered.contains("@Deprecated(\"Use new_field instead\")"),
+        "Should contain @Deprecated with message for property"
     );
     assert!(
         rendered.contains("deprecated_field"),
@@ -165,6 +165,7 @@ async fn test_deprecated_property_filtering() -> Result<()> {
         name: "TestConfig".to_string(),
         kind: PklTypeKind::Class,
         deprecated: None,
+        open: true,
         documentation: Some("A test configuration class".to_string()),
         properties: vec![deprecated_property, normal_property],
         enum_values: None,
@@ -177,7 +178,6 @@ async fn test_deprecated_property_filtering() -> Result<()> {
         documentation: Some("Test module".to_string()),
         types: vec![test_class],
         imports: vec![],
-        exports: vec![],
         properties: vec![],
     };
 

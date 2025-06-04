@@ -4,7 +4,7 @@
 
 amends "pkl:test"
 
-import "../../../pkl-schemas/workspace.pkl" as workspace
+import "../../../pkl-schemas/Workspace.pkl" as workspace
 
 local exampleWorkspaceMinimal = new {
   // This represents a minimal valid workspace configuration

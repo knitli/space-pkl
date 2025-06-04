@@ -57,8 +57,11 @@ globset = "0.4"
 schematic_types = "0.10.2"
 
 # Template engine
+
 handlebars = "6.3.2"
+handlebars_misc_helpers = { version = "0.17.0", features = ["string"], default-features = false }
 indexmap = "2.0"
+lazy_static = "1.4.0" # For static HashSet of top-level config names
 
 # Optional: for better error reporting
 color-eyre = { version = "0.6.5", optional = true }

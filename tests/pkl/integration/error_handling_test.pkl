@@ -4,8 +4,8 @@
 
 amends "pkl:test"
 
-import "../../../pkl-schemas/workspace.pkl" as workspace
-import "../../../pkl-schemas/project.pkl" as project
+import "../../../pkl-schemas/Workspace.pkl" as workspace
+import "../../../pkl-schemas/Project.pkl" as project
 
 facts {
   // Test that enum validation works at type level

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# PKL Test Runner for space-pkl
-# Runs all PKL tests and generates reports
+# Pkl Test Runner for space-pkl
+# Runs all Pkl tests and generates reports
 
 set -euo pipefail
 
@@ -32,7 +32,7 @@ log_error() {
 # Check if pkl is available
 check_pkl_availability() {
   if ! command -v pkl &>/dev/null; then
-    log_error "PKL CLI is not available. Please install PKL first."
+    log_error "Pkl CLI is not available. Please install Pkl first."
     exit 1
   fi
 
@@ -58,7 +58,7 @@ setup_schemas() {
       cli="cargo run -- "
     fi
     "$cli" generate --output "$SCHEMA_DIR" || exit 1
-    log_info "Generated PKL schemas in: $SCHEMA_DIR"
+    log_info "Generated Pkl schemas in: $SCHEMA_DIR"
 }
 
 # Run tests in a specific directory
@@ -105,7 +105,7 @@ run_test_category() {
   return $failed_tests
 }
 
-# Run all PKL tests
+# Run all Pkl tests
 run_all_tests() {
   local total_failures=0
 
@@ -127,7 +127,7 @@ run_all_tests() {
 
 # Main execution
 main() {
-  log_info "Starting PKL tests for space-pkl..."
+  log_info "Starting Pkl tests for space-pkl..."
 
   check_pkl_availability
 
@@ -141,11 +141,11 @@ main() {
   cd "$PROJECT_ROOT"
 
   if run_all_tests; then
-    log_info "All PKL tests passed! ✓"
+    log_info "All Pkl tests passed! ✓"
     rm -rf "$SCHEMA_DIR"  # Clean up schemas after tests
     exit 0
   else
-    log_error "Some PKL tests failed! ✗"
+    log_error "Some Pkl tests failed! ✗"
     log_error "Check test reports in: $REPORTS_DIR"
     log_error "Schemas used for tests are in: $SCHEMA_DIR"
     exit 1

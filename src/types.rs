@@ -7,7 +7,7 @@
 //! # Overview
 //!
 //! The type system is built around a hierarchical structure that mirrors Pkl's type system:
-//! - **Modules** contain collections of types, imports, and exports
+//! - **Modules** contain collections of types and imports
 //! - **Types** define Pkl classes, type aliases, unions, and modules
 //! - **Properties** represent fields within types with validation and documentation
 //! - **Constraints** provide runtime validation rules for properties
@@ -18,7 +18,6 @@
 //! ```text
 //! PklModule
 //! ├── imports: Vec<PklImport>        # Module dependencies
-//! ├── exports: Vec<PklExport>        # Public API surface
 //! ├── types: Vec<PklType>            # Type definitions
 //! └── properties: Vec<PklProperty>   # Module-level properties
 //!
@@ -68,7 +67,7 @@
 //! - **Type Safety**: Full type information preserved from Rust to Pkl
 //! - **Documentation**: Rich documentation with examples and constraints
 //! - **Validation**: Constraint-based validation with custom error messages
-//! - **Modularity**: Import/export system for schema composition
+//! - **Modularity**: Import system for schema composition
 //! - **Flexibility**: Support for inheritance, generics, and unions
 //! - **Templates**: Customizable code generation with template contexts
 //!
@@ -106,30 +105,6 @@
 //!     deprecated: None,
 //! };
 //! ```
-//!
-//! ## Creating a Module with Exports
-//! ```rust
-//! use space_pkl::types::*;
-//!
-//! let module = PklModule {
-//!     name: "UserModule".to_string(),
-//!     documentation: Some("User management types".to_string()),
-//!     imports: vec![
-//!         PklImport {
-//!             path: "base.pkl".to_string(),
-//!             alias: Some("base".to_string()),
-//!             glob: false,
-//!         }
-//!     ],
-//!     exports: vec![
-//!         PklExport {
-//!             name: "User".to_string(),
-//!             type_name: "User".to_string(),
-//!         }
-//!     ],
-//!     types: vec![/* user_type from above */],
-//!     properties: vec![],
-//! };
 //! ```
 //!
 //! # Type Mapping
@@ -168,7 +143,6 @@ use std::collections::HashMap;
 /// A Pkl module contains several key components:
 /// - **Module Metadata**: Name and documentation
 /// - **Dependency Management**: Import declarations for external modules
-/// - **Public API**: Export declarations for types available to other modules
 /// - **Type Definitions**: Classes, type aliases, unions, and nested modules
 /// - **Module Properties**: Global configuration values and constants
 ///
@@ -193,7 +167,6 @@ use std::collections::HashMap;
 /// // Module-level properties
 /// defaultTimeout: Duration = 30.s
 ///
-/// // Exported types (public API)
 /// MyType
 /// Status
 /// ```
@@ -208,7 +181,6 @@ use std::collections::HashMap;
 ///     name: "Configuration".to_string(),
 ///     documentation: Some("Application configuration module".to_string()),
 ///     imports: vec![],
-///     exports: vec![],
 ///     types: vec![],
 ///     properties: vec![],
 /// };
@@ -233,12 +205,6 @@ use std::collections::HashMap;
 ///             glob: true,  // Import all types from utils
 ///         },
 ///     ],
-///     exports: vec![
-///         PklExport {
-///             name: "User".to_string(),
-///             type_name: "User".to_string(),
-///         }
-///     ],
 ///     types: vec![/* type definitions */],
 ///     properties: vec![/* module-level constants */],
 /// };
@@ -259,16 +225,6 @@ use std::collections::HashMap;
 ///             glob: false,
 ///         }
 ///     ],
-///     exports: vec![
-///         PklExport {
-///             name: "DatabaseConfig".to_string(),
-///             type_name: "DatabaseConfig".to_string(),
-///         },
-///         PklExport {
-///             name: "PoolConfig".to_string(),
-///             type_name: "PoolConfig".to_string(),
-///         }
-///     ],
 ///     types: vec![
 ///         // DatabaseConfig type definition
 ///         // PoolConfig type definition
@@ -284,7 +240,7 @@ use std::collections::HashMap;
 ///
 /// Modules can be organized in several ways:
 /// - **Single Module**: All types in one file (`moon.pkl`)
-/// - **Split Modules**: Each configuration type in separate files (`workspace.pkl`, `project.pkl`, etc.)
+/// - **Split Modules**: Each configuration type in separate files (`Workspace.pkl`, `Project.pkl`, etc.)
 /// - **Hierarchical**: Nested modules with imports between them
 ///
 /// # Cross-Module References
@@ -293,7 +249,7 @@ use std::collections::HashMap;
 /// ```pkl
 /// module ProjectConfig
 ///
-/// import "workspace.pkl" as workspace
+/// import "Workspace.pkl" as workspace
 ///
 /// class Project {
 ///   // Reference to type from workspace module
@@ -311,7 +267,6 @@ use std::collections::HashMap;
 ///     name: "TestModule".to_string(),
 ///     documentation: None,
 ///     imports: vec![],
-///     exports: vec![],
 ///     types: vec![],
 ///     properties: vec![],
 /// };
@@ -373,29 +328,10 @@ pub struct PklModule {
     /// # Example Pkl Output
     /// ```pkl
     /// import "pkl:base"
-    /// import "workspace.pkl" as workspace
+    /// import "Workspace.pkl" as workspace
     /// import "utils/*"
     /// ```
     pub imports: Vec<PklImport>,
-
-    /// Export declarations defining the module's public API.
-    ///
-    /// Specifies which types and values are publicly available when this
-    /// module is imported by other modules. Only exported items are accessible
-    /// from outside the module.
-    ///
-    /// # Export Strategy
-    /// - Export main configuration types
-    /// - Keep internal/helper types private
-    /// - Use descriptive export names
-    ///
-    /// # Example Pkl Output
-    /// ```pkl
-    /// // At the end of the module file
-    /// WorkspaceConfig     // Exported type
-    /// ProjectSettings     // Exported type
-    /// ```
-    pub exports: Vec<PklExport>,
 
     /// Type definitions contained within this module.
     ///
@@ -453,7 +389,7 @@ pub struct PklModule {
 /// ## Named Import with Alias
 /// Creates a namespace for the imported module:
 /// ```pkl
-/// import "workspace.pkl" as workspace
+/// import "Workspace.pkl" as workspace
 /// // Usage: workspace.WorkspaceConfig
 /// ```
 ///
@@ -485,11 +421,11 @@ pub struct PklModule {
 /// use space_pkl::types::*;
 ///
 /// let import = PklImport {
-///     path: "workspace.pkl".to_string(),
+///     path: "Workspace.pkl".to_string(),
 ///     alias: Some("ws".to_string()),
 ///     glob: false,
 /// };
-/// // Generates: import "workspace.pkl" as ws
+/// // Generates: import "Workspace.pkl" as ws
 /// ```
 ///
 /// ## Standard Library Import
@@ -527,7 +463,7 @@ pub struct PklModule {
 ///         glob: false,
 ///     },
 ///     PklImport {
-///         path: "workspace.pkl".to_string(),
+///         path: "Workspace.pkl".to_string(),
 ///         alias: Some("workspace".to_string()),
 ///         glob: false,
 ///     },
@@ -565,7 +501,7 @@ pub struct PklModule {
 ///     PklImport { path: "external/package.pkl".to_string(), alias: Some("ext".to_string()), glob: false },
 ///
 ///     // Local modules
-///     PklImport { path: "workspace.pkl".to_string(), alias: Some("workspace".to_string()), glob: false },
+///     PklImport { path: "Workspace.pkl".to_string(), alias: Some("workspace".to_string()), glob: false },
 /// ];
 /// ```
 ///
@@ -587,7 +523,7 @@ pub struct PklImport {
     /// # Path Examples
     /// ```pkl
     /// import "pkl:base"                    // Standard library
-    /// import "workspace.pkl"               // Relative to current module
+    /// import "Workspace.pkl"               // Relative to current module
     /// import "./configs/database.pkl"      // Explicit relative path
     /// import "/etc/pkl/system.pkl"         // Absolute path
     /// import "mypackage/types.pkl"         // Package-relative path
@@ -607,7 +543,7 @@ pub struct PklImport {
     ///
     /// # Examples
     /// ```pkl
-    /// import "workspace.pkl" as ws    // With alias
+    /// import "Workspace.pkl" as ws    // With alias
     /// let config: ws.WorkspaceConfig  // Usage with alias
     ///
     /// import "types.pkl"              // Without alias
@@ -641,229 +577,6 @@ pub struct PklImport {
     /// Glob imports cannot be combined with aliases. When `glob` is `true`,
     /// the `alias` field should be `None`.
     pub glob: bool,
-}
-
-/// Represents a Pkl export declaration for module's public API.
-///
-/// `PklExport` defines which types and values are publicly accessible when
-/// this module is imported by other modules. Only exported items can be
-/// referenced from outside the module, providing encapsulation and API control.
-///
-/// # Export Mechanism
-///
-/// Pkl exports work by listing type names at the end of a module file:
-/// ```pkl
-/// module MyModule
-///
-/// class InternalType { ... }     // Not exported (private)
-/// class PublicType { ... }       // Will be exported
-///
-/// typealias Status = "ok" | "error"  // Will be exported
-///
-/// // Export declarations (at end of module)
-/// PublicType    // Makes PublicType available to importers
-/// Status        // Makes Status alias available to importers
-/// ```
-///
-/// # Usage Examples
-///
-/// ## Basic Type Export
-/// ```rust
-/// use space_pkl::types::*;
-///
-/// let export = PklExport {
-///     name: "DatabaseConfig".to_string(),
-///     type_name: "DatabaseConfig".to_string(),
-/// };
-/// // Generates: DatabaseConfig
-/// ```
-///
-/// ## Export with Different Name
-/// ```rust
-/// use space_pkl::types::*;
-///
-/// let export = PklExport {
-///     name: "Config".to_string(),           // Public name
-///     type_name: "DatabaseConfigImpl".to_string(),  // Internal type name
-/// };
-/// // Generates: Config = DatabaseConfigImpl
-/// ```
-///
-/// ## Multiple Exports for a Module
-/// ```rust
-/// use space_pkl::types::*;
-///
-/// let exports = vec![
-///     PklExport {
-///         name: "WorkspaceConfig".to_string(),
-///         type_name: "WorkspaceConfig".to_string(),
-///     },
-///     PklExport {
-///         name: "ProjectConfig".to_string(),
-///         type_name: "ProjectConfig".to_string(),
-///     },
-///     PklExport {
-///         name: "LogLevel".to_string(),
-///         type_name: "LogLevel".to_string(),
-///     },
-/// ];
-/// ```
-///
-/// # Export Strategies
-///
-/// ## Explicit API Design
-/// ```rust
-/// use space_pkl::types::PklExport;
-///
-/// // Export only essential types for clean API
-/// let public_api = vec![
-///     PklExport {
-///         name: "Config".to_string(),        // Main configuration type
-///         type_name: "DatabaseConfig".to_string(),
-///     },
-///     PklExport {
-///         name: "ConnectionPool".to_string(), // Supporting type
-///         type_name: "ConnectionPool".to_string(),
-///     },
-///     // Note: Internal types like DatabaseConnection are NOT exported
-/// ];
-/// ```
-///
-/// ## Re-exporting with Aliases
-/// ```rust
-/// use space_pkl::types::PklExport;
-///
-/// // Provide simplified names for complex internal types
-/// let simplified_exports = vec![
-///     PklExport {
-///         name: "DB".to_string(),            // Simple alias
-///         type_name: "DatabaseConfiguration".to_string(),  // Complex internal name
-///     },
-///     PklExport {
-///         name: "Pool".to_string(),          // Simple alias
-///         type_name: "ConnectionPoolSettings".to_string(), // Complex internal name
-///     },
-/// ];
-/// ```
-///
-/// # Access Control
-///
-/// Exports provide fine-grained control over module APIs:
-///
-/// ## Public vs Private Types
-/// ```pkl
-/// module DatabaseModule
-///
-/// // Private types (not exported)
-/// class InternalConnectionManager { ... }
-/// class DatabaseDriver { ... }
-///
-/// // Public types (exported)
-/// class DatabaseConfig { ... }
-/// class PoolSettings { ... }
-///
-/// // Only public types are accessible from outside
-/// DatabaseConfig
-/// PoolSettings
-/// ```
-///
-/// ## Versioned APIs
-/// ```rust
-/// use space_pkl::types::PklExport;
-///
-/// // Export different versions of the same concept
-/// let versioned_exports = vec![
-///     PklExport {
-///         name: "ConfigV1".to_string(),
-///         type_name: "DatabaseConfigV1".to_string(),
-///     },
-///     PklExport {
-///         name: "Config".to_string(),        // Default to latest
-///         type_name: "DatabaseConfigV2".to_string(),
-///     },
-/// ];
-/// ```
-///
-/// # Best Practices
-///
-/// ## Naming Conventions
-/// - Use clear, descriptive export names
-/// - Follow consistent naming patterns across modules
-/// - Prefer full names over abbreviations for clarity
-/// - Use PascalCase for type names
-///
-/// ## API Design
-/// - Export minimal necessary surface area
-/// - Group related exports logically
-/// - Provide aliases for complex internal names
-/// - Document breaking changes in export names
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PklExport {
-    /// The public name for this export.
-    ///
-    /// This is the name that other modules will use when importing and
-    /// referencing this type. It becomes the identifier in import statements
-    /// and type references.
-    ///
-    /// # Naming Guidelines
-    /// - Use PascalCase for type names (e.g., "DatabaseConfig", "LogLevel")
-    /// - Keep names descriptive but concise
-    /// - Avoid abbreviations unless universally understood
-    /// - Use consistent naming patterns across related modules
-    ///
-    /// # Example Usage
-    /// ```pkl
-    /// // In the exporting module
-    /// DatabaseConfig    // <- This is the export name
-    ///
-    /// // In an importing module
-    /// import "db.pkl"
-    /// let config: DatabaseConfig  // <- Uses the export name
-    /// ```
-    pub name: String,
-
-    /// The internal type name that this export refers to.
-    ///
-    /// This specifies the actual type definition within the module that
-    /// should be made available under the public export name. Usually
-    /// this matches the `name` field, but can differ when providing
-    /// aliases or simplified names for complex internal types.
-    ///
-    /// # Use Cases
-    ///
-    /// ## Direct Export (Most Common)
-    /// ```rust
-    /// # use space_pkl::types::*;
-    /// let export = PklExport {
-    ///     name: "DatabaseConfig".to_string(),
-    ///     type_name: "DatabaseConfig".to_string(),  // Same as name
-    /// };
-    /// ```
-    ///
-    /// ## Aliased Export
-    /// ```rust
-    /// # use space_pkl::types::*;
-    /// let export = PklExport {
-    ///     name: "Config".to_string(),                    // Simple public name
-    ///     type_name: "DatabaseConfigurationImpl".to_string(),  // Complex internal name
-    /// };
-    /// ```
-    ///
-    /// ## Version-specific Export
-    /// ```rust
-    /// # use space_pkl::types::*;
-    /// let export = PklExport {
-    ///     name: "Config".to_string(),           // Generic public interface
-    ///     type_name: "ConfigV2".to_string(),    // Specific implementation
-    /// };
-    /// ```
-    ///
-    /// # Type Resolution
-    /// The `type_name` must refer to a type defined within the same module
-    /// through the `types` field of the containing `PklModule`. Forward
-    /// references are supported - the export can refer to types defined
-    /// later in the module.
-    pub type_name: String,
 }
 
 /// Represents a Pkl type definition (class, type alias, union, or module).
@@ -944,6 +657,7 @@ pub struct PklExport {
 ///     abstract_type: false,
 ///     extends: vec![],
 ///     enum_values: None,
+///     open: true,
 ///     deprecated: None,
 /// };
 /// ```
@@ -1153,6 +867,12 @@ pub struct PklType {
     /// ```
     pub abstract_type: bool,
 
+    /// Whether this type is `open` (classes only).
+    ///
+    /// When `true` (default), class will be rendered with `open` keyword,
+    /// which means you can extend the class.
+    pub open: bool,
+
     /// Base types that this type extends (inheritance).
     ///
     /// For class types, specifies the parent class(es) in the inheritance chain.
@@ -1314,6 +1034,7 @@ pub struct PklType {
 /// #   documentation: None,
 /// #   abstract_type: false,
 /// #   extends: vec![],
+/// #   open: true,
 /// #   enum_values: None,
 /// #   deprecated: None,
 /// };
@@ -1327,7 +1048,7 @@ pub struct PklType {
 ///     name: "UserId".to_string(),
 ///     kind: PklTypeKind::TypeAlias,  // Named reference to existing type
 ///     enum_values: Some("String".to_string()),  // Points to String type
-///     // ... other fields
+///     open: false, // not a class
 /// #   documentation: None,
 /// #   properties: vec![],
 /// #   abstract_type: false,
@@ -1346,6 +1067,7 @@ pub struct PklType {
 ///     enum_values: Some("\"active\" | \"inactive\" | \"pending\"".to_string()),
 ///     // ... other fields
 /// #   documentation: None,
+/// #   open: false,
 /// #   properties: vec![],
 /// #   abstract_type: false,
 /// #   extends: vec![],
@@ -1463,7 +1185,7 @@ pub enum PklTypeKind {
     /// A Pkl nested module definition.
     ///
     /// Modules provide namespacing and organization for related types and values.
-    /// They can contain their own type definitions, imports, and exports.
+    /// They can contain their own type definitions, and imports.
     ///
     /// # Generated Syntax
     /// ```pkl
@@ -1471,7 +1193,6 @@ pub enum PklTypeKind {
     ///   class LocalType { ... }
     ///   typealias LocalAlias = String
     ///
-    ///   // Local exports
     ///   LocalType
     ///   LocalAlias
     /// }
@@ -1978,12 +1699,8 @@ pub struct PklProperty {
     /// documentation to warn users about deprecated properties and guide them
     /// toward alternatives.
     ///
-    /// # Deprecation Message Format
-    /// The deprecation message should include:
-    /// - **Reason**: Why the property is deprecated
-    /// - **Alternative**: What to use instead
-    /// - **Timeline**: When removal is planned (version/date)
-    /// - **Migration**: How to migrate existing configurations
+    ///  If the deprecation notice includes a message or reason, it will be rendered
+    ///  in `pkl` as a Deprecation `message` property, like:
     ///
     /// # Generated Pkl Output
     /// Deprecated properties generate warning annotations:
@@ -1992,24 +1709,16 @@ pub struct PklProperty {
     /// oldProperty: String?
     /// ```
     ///
-    /// # Best Practices
-    /// - **Clear guidance**: Always suggest alternatives
-    /// - **Migration path**: Provide clear migration instructions
-    /// - **Timeline**: Give users advance notice of removal
-    /// - **Backward compatibility**: Keep deprecated properties functional
+    /// **NOTE**: `space-pkl` **does not render deprecated properties** by default.
+    /// However, if you pass (programmatically or through the cli) the
+    /// `include_deprecations` flag, then deprecations will be rendered like
+    /// in the above example.
     ///
     /// # Deprecation Lifecycle
-    /// 1. **Mark as deprecated**: Add deprecation message
-    /// 2. **Update documentation**: Add migration guides
-    /// 3. **Warn users**: Generate deprecation warnings
-    /// 4. **Eventually remove**: After sufficient warning period
     ///
-    /// # Examples
-    /// ```text
-    /// Some("Use 'databaseUrl' instead. Will be removed in v2.0".to_string())
-    /// Some("Replaced by 'connectionConfig'. Migrate by v1.5".to_string())
-    /// None  // Property is not deprecated
-    /// ```
+    /// We will mark a property deprecated and cease to include it as soon as
+    /// `moon` marks it deprecated. We don't have a strategy for planned
+    /// deprecations yet...
     pub deprecated: Option<String>,
 }
 
@@ -2080,6 +1789,7 @@ pub struct PklProperty {
 ///                    message: Some("Must contain at least one digit".to_string()) },
 /// ];
 /// ```
+///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PklConstraint {
     /// The type of constraint being applied.
@@ -2558,7 +2268,6 @@ pub struct TemplateContext {
     /// - **Types**: Class definitions and enums
     /// - **Properties**: Configuration properties with validation
     /// - **Imports**: Dependencies on other modules
-    /// - **Exports**: Public API surface
     /// - **Documentation**: Module and type-level documentation
     ///
     /// # Template Access
@@ -2652,7 +2361,6 @@ mod tests {
             name: "TestModule".to_string(),
             documentation: Some("Test module documentation".to_string()),
             imports: vec![],
-            exports: vec![],
             types: vec![],
             properties: vec![],
         };
@@ -2663,7 +2371,6 @@ mod tests {
             Some("Test module documentation".to_string())
         );
         assert!(module.imports.is_empty());
-        assert!(module.exports.is_empty());
         assert!(module.types.is_empty());
         assert!(module.properties.is_empty());
     }
@@ -2695,23 +2402,13 @@ mod tests {
     }
 
     #[test]
-    fn test_pkl_export_creation() {
-        let export = PklExport {
-            name: "MyType".to_string(),
-            type_name: "MyTypeImpl".to_string(),
-        };
-
-        assert_eq!(export.name, "MyType");
-        assert_eq!(export.type_name, "MyTypeImpl");
-    }
-
-    #[test]
     fn test_pkl_type_class() {
         let pkl_type = PklType {
             name: "TestClass".to_string(),
             documentation: Some("A test class".to_string()),
             kind: PklTypeKind::Class,
             properties: vec![],
+            open: true,
             abstract_type: false,
             extends: vec![],
             enum_values: None,
@@ -2738,6 +2435,7 @@ mod tests {
             extends: vec!["BaseClass".to_string()],
             enum_values: None,
             deprecated: None,
+            open: false,
         };
 
         assert!(pkl_type.abstract_type);
@@ -2755,6 +2453,7 @@ mod tests {
             extends: vec![],
             enum_values: None,
             deprecated: Some("Use NewType instead".to_string()),
+            open: false,
         };
 
         assert_eq!(pkl_type.deprecated, Some("Use NewType instead".to_string()));
@@ -2771,6 +2470,7 @@ mod tests {
             extends: vec![],
             enum_values: Some("\"active\" | \"inactive\" | \"pending\"".to_string()),
             deprecated: None,
+            open: false,
         };
 
         assert!(matches!(pkl_type.kind, PklTypeKind::Union));
@@ -2791,6 +2491,7 @@ mod tests {
             extends: vec![],
             enum_values: Some("String".to_string()),
             deprecated: None,
+            open: false,
         };
 
         assert!(matches!(pkl_type.kind, PklTypeKind::TypeAlias));
@@ -2922,7 +2623,6 @@ mod tests {
             name: "Test".to_string(),
             documentation: None,
             imports: vec![],
-            exports: vec![],
             types: vec![],
             properties: vec![],
         };
@@ -3042,6 +2742,7 @@ mod tests {
             extends: vec![],
             enum_values: None,
             deprecated: None,
+            open: false,
         };
 
         let import = PklImport {
@@ -3050,23 +2751,16 @@ mod tests {
             glob: false,
         };
 
-        let export = PklExport {
-            name: "TestObject".to_string(),
-            type_name: "TestObject".to_string(),
-        };
-
         let module = PklModule {
             name: "ComplexModule".to_string(),
             documentation: Some("A complex test module".to_string()),
             imports: vec![import],
-            exports: vec![export],
             types: vec![pkl_type],
             properties: vec![],
         };
 
         assert_eq!(module.name, "ComplexModule");
         assert_eq!(module.imports.len(), 1);
-        assert_eq!(module.exports.len(), 1);
         assert_eq!(module.types.len(), 1);
 
         let test_type = &module.types[0];
@@ -3112,6 +2806,7 @@ mod tests {
             extends: vec![],
             enum_values: None,
             deprecated: None,
+            open: false,
         };
 
         let outer_property = PklProperty {
@@ -3134,6 +2829,7 @@ mod tests {
             extends: vec!["BaseType".to_string()],
             enum_values: None,
             deprecated: None,
+            open: false,
         };
 
         let module = PklModule {
@@ -3144,22 +2840,11 @@ mod tests {
                 alias: Some("base".to_string()),
                 glob: false,
             }],
-            exports: vec![
-                PklExport {
-                    name: "InnerType".to_string(),
-                    type_name: "InnerType".to_string(),
-                },
-                PklExport {
-                    name: "OuterType".to_string(),
-                    type_name: "OuterType".to_string(),
-                },
-            ],
             types: vec![inner_type, outer_type],
             properties: vec![],
         };
 
         assert_eq!(module.types.len(), 2);
-        assert_eq!(module.exports.len(), 2);
 
         let inner = &module.types[0];
         assert_eq!(inner.name, "InnerType");
@@ -3257,6 +2942,7 @@ mod tests {
             extends: vec![],
             enum_values: Some("String | Int".to_string()),
             deprecated: Some("Use specific types instead".to_string()),
+            open: false,
         };
 
         let serialized = serde_json::to_string(&typealias).expect("Failed to serialize");
@@ -3278,6 +2964,7 @@ mod tests {
             extends: vec![],
             enum_values: Some("\"red\" | \"green\" | \"blue\"".to_string()),
             deprecated: None,
+            open: false,
         };
 
         let enum_serialized = serde_json::to_string(&enum_type).expect("Failed to serialize enum");
@@ -3294,7 +2981,6 @@ mod tests {
             name: "ComplexTemplate".to_string(),
             documentation: Some("Template with complex variables".to_string()),
             imports: vec![],
-            exports: vec![],
             types: vec![],
             properties: vec![],
         };
@@ -3366,10 +3052,6 @@ mod tests {
                 alias: Some("B".to_string()),
                 glob: false,
             }],
-            exports: vec![PklExport {
-                name: "TypeA".to_string(),
-                type_name: "TypeA".to_string(),
-            }],
             types: vec![PklType {
                 name: "TypeA".to_string(),
                 documentation: Some("Type that uses B.TypeB".to_string()),
@@ -3388,6 +3070,7 @@ mod tests {
                 extends: vec![],
                 enum_values: None,
                 deprecated: None,
+                open: false,
             }],
             properties: vec![],
         };
@@ -3400,10 +3083,6 @@ mod tests {
                 path: "module_a.pkl".to_string(),
                 alias: Some("A".to_string()),
                 glob: false,
-            }],
-            exports: vec![PklExport {
-                name: "TypeB".to_string(),
-                type_name: "TypeB".to_string(),
             }],
             types: vec![PklType {
                 name: "TypeB".to_string(),
@@ -3421,6 +3100,7 @@ mod tests {
                 }],
                 abstract_type: false,
                 extends: vec![],
+                open: false,
                 enum_values: None,
                 deprecated: None,
             }],
@@ -3484,6 +3164,7 @@ mod tests {
                 extends: vec![],
                 enum_values: None,
                 deprecated: None,
+                open: false,
             };
 
             // Test serialization
@@ -3554,7 +3235,6 @@ mod tests {
             name: "SerializationTest".to_string(),
             documentation: None,
             imports: vec![],
-            exports: vec![],
             types: vec![],
             properties: vec![],
         };

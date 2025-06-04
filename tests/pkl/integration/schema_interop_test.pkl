@@ -5,8 +5,8 @@
 amends "pkl:test"
 
 import "../../../pkl-schemas/mod.pkl" as moon
-import "../../../pkl-schemas/workspace.pkl" as workspace
-import "../../../pkl-schemas/project.pkl" as project
+import "../../../pkl-schemas/Workspace.pkl" as workspace
+import "../../../pkl-schemas/Project.pkl" as project
 
 // Test creating configurations using the main module exports
 local workspaceConfig = new moon.Workspace {

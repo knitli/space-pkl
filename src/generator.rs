@@ -83,9 +83,22 @@ use moon_config::*;
 use schematic::schema::SchemaGenerator as SchematicGenerator;
 use schematic::Config;
 use schematic_types::{Schema, SchemaField, SchemaType};
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use tracing::{debug, info, warn};
+
+lazy_static::lazy_static! {
+    static ref TOP_LEVEL_CONFIG_NAMES: HashSet<&'static str> = {
+        let mut set = HashSet::new();
+        set.insert("WorkspaceConfig");
+        set.insert("ProjectConfig");
+        set.insert("TemplateConfig");
+        set.insert("ToolchainConfig");
+        set.insert("InheritedTasksConfig"); // Corresponds to TasksConfig
+        set
+    };
+}
 
 /// Core schema generator for Moon configurations.
 ///
@@ -213,12 +226,11 @@ impl SchemaGenerator {
     /// # File Structure
     ///
     /// When `split_types` is enabled (default), generates:
-    /// - `workspace.pkl` - Workspace configuration schema
-    /// - `project.pkl` - Project configuration schema
-    /// - `template.pkl` - Template configuration schema
-    /// - `toolchain.pkl` - Toolchain configuration schema
-    /// - `tasks.pkl` - Task configuration schema
-    /// - `mod.pkl` - Module index importing all schemas
+    /// - `Workspace.pkl` - Workspace configuration schema
+    /// - `Project.pkl` - Project configuration schema
+    /// - `Template.pkl` - Template configuration schema
+    /// - `Toolchain.pkl` - Toolchain configuration schema
+    /// - `Tasks.pkl` - Task configuration schema
     ///
     /// # Errors
     ///
@@ -245,8 +257,8 @@ impl SchemaGenerator {
     /// generator.generate_all()?;
     ///
     /// // Files are now available in ./pkl-schemas/
-    /// assert!(PathBuf::from("./pkl-schemas/workspace.pkl").exists());
-    /// assert!(PathBuf::from("./pkl-schemas/project.pkl").exists());
+    /// assert!(PathBuf::from("./pkl-schemas/Workspace.pkl").exists());
+    /// assert!(PathBuf::from("./pkl-schemas/Project.pkl").exists());
     /// # Ok(())
     /// # }
     /// ```
@@ -263,11 +275,6 @@ impl SchemaGenerator {
         self.generate_template_schema_file()?;
         self.generate_toolchain_schema_file()?;
         self.generate_tasks_schema_file()?;
-
-        // Generate module index
-        if self.config.split_types {
-            self.generate_module_index()?;
-        }
 
         info!(
             "Successfully generated all schemas in: {}",
@@ -368,12 +375,10 @@ impl SchemaGenerator {
     /// Creates a Pkl module for `TemplateConfig` used in project scaffolding
     /// and code generation workflows.
     ///
-    /// # Generated Schema Includes
+    /// # Returns
     ///
-    /// - Template metadata and variables
-    /// - File generation rules and patterns
-    /// - Variable substitution configuration
-    /// - Template inheritance and composition
+    /// A `String` containing the Pkl template schema with variable definitions,
+    /// file patterns, and template composition rules.
     ///
     /// # Examples
     ///
@@ -504,7 +509,7 @@ impl SchemaGenerator {
             .config
             .output_dir
             .join(ConfigSchemaType::Workspace.filename());
-        self.write_schema_file(&file_path, &schema, "workspace")
+        self.write_schema_file(&file_path, &schema, "Workspace")
     }
 
     fn generate_project_schema_file(&self) -> Result<()> {
@@ -513,7 +518,7 @@ impl SchemaGenerator {
             .config
             .output_dir
             .join(ConfigSchemaType::Project.filename());
-        self.write_schema_file(&file_path, &schema, "project")
+        self.write_schema_file(&file_path, &schema, "Project")
     }
 
     fn generate_template_schema_file(&self) -> Result<()> {
@@ -522,7 +527,7 @@ impl SchemaGenerator {
             .config
             .output_dir
             .join(ConfigSchemaType::Template.filename());
-        self.write_schema_file(&file_path, &schema, "template")
+        self.write_schema_file(&file_path, &schema, "Template")
     }
 
     fn generate_toolchain_schema_file(&self) -> Result<()> {
@@ -531,7 +536,7 @@ impl SchemaGenerator {
             .config
             .output_dir
             .join(ConfigSchemaType::Toolchain.filename());
-        self.write_schema_file(&file_path, &schema, "toolchain")
+        self.write_schema_file(&file_path, &schema, "Toolchain")
     }
 
     fn generate_tasks_schema_file(&self) -> Result<()> {
@@ -540,7 +545,7 @@ impl SchemaGenerator {
             .config
             .output_dir
             .join(ConfigSchemaType::Tasks.filename());
-        self.write_schema_file(&file_path, &schema, "tasks")
+        self.write_schema_file(&file_path, &schema, "Tasks")
     }
 
     fn write_schema_file(&self, path: &Path, content: &str, schema_name: &str) -> Result<()> {
@@ -558,33 +563,20 @@ impl SchemaGenerator {
         Ok(())
     }
 
-    /// Generate a module index file that imports all schemas
-    fn generate_module_index(&self) -> Result<()> {
-        let index_content = self.template_engine.render_module_index(&self.config)?;
-        let index_path = self.config.output_dir.join("mod.pkl");
-
-        fs::write(&index_path, index_content)
-            .into_diagnostic()
-            .wrap_err("Failed to write module index")?;
-
-        info!("Generated module index: {}", index_path.display());
-        Ok(())
-    }
-
     /// Converts a collection of schematic schemas into a complete Pkl module.
     ///
     /// This method orchestrates the conversion from raw schema data to a structured
-    /// Pkl module representation. It handles type dependency resolution, export
-    /// generation, and module organization.
+    /// Pkl module representation. It handles type dependency resolution,
+    /// and module organization.
     ///
     /// # Arguments
     ///
     /// * `schemas` - Map of schema names to their definitions from schematic introspection
-    /// * `type_name` - Primary type name used for module naming and main exports
+    /// * `type_name` - Primary type name used for module naming
     ///
     /// # Returns
     ///
-    /// A `PklModule` containing all converted types, exports, and metadata.
+    /// A `PklModule` containing all converted types, and metadata.
     ///
     /// # Processing Steps
     ///
@@ -600,38 +592,74 @@ impl SchemaGenerator {
     /// - `Union` → Pkl `TypeAlias` with type alternatives
     /// - `Reference` → Pkl `Class` referencing external types
     fn convert_schemas_to_pkl(
-        &self,
-        schemas: indexmap::IndexMap<String, Schema>,
-        type_name: &str,
-    ) -> Result<PklModule> {
-        let mut module = PklModule {
-            name: type_name.to_string(),
-            documentation: Some(format!(
-                "Moon {} configuration schema",
-                type_name.to_lowercase()
-            )),
-            imports: vec![],
-            exports: vec![],
-            types: vec![],
-            properties: vec![],
-        };
+      &self,
+      schemas: indexmap::IndexMap<String, Schema>,
+      type_name: &str,
+  ) -> Result<PklModule> {
+      let mut module = PklModule {
+          name: type_name.to_string(),
+          documentation: Some(format!(
+              "Moon {} configuration schema",
+              type_name.to_lowercase()
+          )),
+          imports: vec![],
+          types: vec![],
+          properties: vec![],
+      };
 
-        // Convert each schema to a Pkl type
-        for (name, schema) in schemas {
-            let pkl_type = self.convert_schema_to_pkl_type(&schema, &name)?;
-            module.types.push(pkl_type);
+      let mut processed_types: HashSet<String> = HashSet::new();
+      let mut collected_pkl_types: Vec<PklType> = Vec::new();
 
-            // Add export for the main type (prefer exact match, then primary config)
-            if name == type_name || (name.ends_with("Config") && !schema.deprecated.is_some()) {
-                module.exports.push(PklExport {
-                    name: name.clone(),
-                    type_name: name.clone(),
-                });
-            }
-        }
+      // First pass: Identify top-level configs and process them directly
+      // Also, collect all schemas that need recursive processing
+      let mut schemas_to_process: indexmap::IndexMap<String, Schema> = indexmap::IndexMap::new();
 
-        Ok(module)
+      for (name, schema) in schemas {
+          if TOP_LEVEL_CONFIG_NAMES.contains(name.as_str()) {
+              if let SchemaType::Struct(struct_type) = &schema.ty {
+                  debug!("Processing top-level config '{}' as module properties", name);
+                  for (field_name, field) in &struct_type.fields {
+                      let property = self.convert_field_to_property(field_name, field)?;
+
+                      if property.deprecated.is_some() && !self.config.include_deprecated {
+                          debug!(
+                              "Skipping deprecated property '{}' in top-level config '{}'",
+                              field_name, name
+                          );
+                          continue;
+                      }
+
+                      module.properties.push(property);
+                  }
+                  processed_types.insert(name); // Mark as processed to avoid re-processing
+                  continue;
+              } else {
+                  warn!(
+                      "Top-level config '{}' is not a struct, falling back to class generation.",
+                      name
+                  );
+              }
+          }
+          schemas_to_process.insert(name, schema);
+      }
+
+      // Second pass: Recursively process all remaining schemas
+      for (_name, schema) in schemas_to_process {
+          self.process_schema_recursively(&schema, &mut processed_types, &mut collected_pkl_types)?;
+      }
+
+      // Filter out deprecated types if include_deprecated is false
+      if !self.config.include_deprecated {
+          module.types = collected_pkl_types
+              .into_iter()
+              .filter(|t| t.deprecated.is_none())
+              .collect();
+      } else {
+          module.types = collected_pkl_types;
+      }
+      Ok(module)
     }
+
 
     /// Converts a single schematic schema into a Pkl type definition.
     ///
@@ -694,25 +722,16 @@ impl SchemaGenerator {
             kind: PklTypeKind::Class,
             properties: vec![],
             abstract_type: false,
+            open: true,
             extends: vec![],
             enum_values: None,
             deprecated: schema.deprecated.clone(),
         };
 
-        match &schema.ty {
+        let result = match &schema.ty {
             SchemaType::Struct(struct_type) => {
                 for (field_name, field) in &struct_type.fields {
                     let property = self.convert_field_to_property(field_name, field)?;
-
-                    // Filter deprecated properties based on configuration
-                    if property.deprecated.is_some() && !self.config.include_deprecated {
-                        debug!(
-                            "Skipping deprecated property '{}' in '{}'",
-                            field_name, name
-                        );
-                        continue;
-                    }
-
                     pkl_type.properties.push(property);
                 }
                 debug!(
@@ -720,9 +739,9 @@ impl SchemaGenerator {
                     name,
                     pkl_type.properties.len()
                 );
+                Ok(pkl_type)
             }
             SchemaType::Enum(enum_type) => {
-                // For string enums, create a typealias with union of string literals
                 if !enum_type.values.is_empty() {
                     pkl_type.kind = PklTypeKind::TypeAlias;
                     let enum_values: Vec<String> = enum_type
@@ -732,7 +751,7 @@ impl SchemaGenerator {
                             schematic_types::LiteralValue::String(s) => format!("\"{}\"", s),
                             schematic_types::LiteralValue::Int(i) => i.to_string(),
                             schematic_types::LiteralValue::Bool(b) => b.to_string(),
-                            _ => format!("{:?}", v), // Fallback for other variants
+                            _ => format!("{:?}", v),
                         })
                         .collect();
 
@@ -742,8 +761,8 @@ impl SchemaGenerator {
                         name,
                         pkl_type.enum_values.as_ref().unwrap()
                     );
+                    Ok(pkl_type)
                 } else {
-                    // Empty enum, keep as class but mark it
                     pkl_type.documentation = Some(format!(
                         "{}{}This is an empty enum type.",
                         pkl_type.documentation.as_deref().unwrap_or(""),
@@ -754,10 +773,10 @@ impl SchemaGenerator {
                         }
                     ));
                     debug!("Created empty enum class '{}'", name);
+                    Ok(pkl_type)
                 }
             }
             SchemaType::Union(union_type) => {
-                // Handle union types - create type alias for all unions
                 pkl_type.kind = PklTypeKind::TypeAlias;
                 let variant_types: Result<Vec<String>> = union_type
                     .variants_types
@@ -778,37 +797,139 @@ impl SchemaGenerator {
                             name,
                             pkl_type.enum_values.as_ref().unwrap()
                         );
+                        Ok(pkl_type)
                     }
                     Err(e) => {
                         warn!("Failed to resolve union types for {}: {}", name, e);
                         pkl_type.enum_values = Some("Any".to_string());
                         debug!("Failed to resolve union '{}', using Any", name);
+                        Ok(pkl_type)
                     }
                 }
             }
-            SchemaType::Reference(ref_name) => {
-                // For reference types, we should create a proper class if it's not already defined
-                // For now, we'll handle this as a struct-like type
-                debug!("Reference type for {}: {}", name, ref_name);
-                debug!("Created reference class '{}'", name);
-                // Keep as class with no properties - the actual properties should come from the referenced schema
+            SchemaType::Reference(_ref_name) => {
+                debug!("Converting reference schema '{}' to PklType", name);
+                pkl_type.kind = PklTypeKind::Class;
+                Ok(pkl_type)
+            }
+            SchemaType::Object(_object_type) => {
+                // Always treat as a mapping (TypeAlias) since ObjectType does not have named properties.
+                pkl_type.kind = PklTypeKind::TypeAlias;
+                debug!("Converted object schema '{}' to PklTypeKind::TypeAlias (Mapping)", name);
+                Ok(pkl_type)
             }
             _ => {
                 // Handle other schema types as needed
                 debug!("Unhandled schema type for {}: {:?}", name, schema.ty);
                 debug!("Created fallback class '{}' for unhandled type", name);
-                // Keep as empty class for now - this preserves strong typing
+                Ok(pkl_type)
             }
+        };
+        result
+  }
+
+// Recursively processes a schema and its nested types to build a flat list of Pkl types.
+//
+// This function is crucial for handling complex schemas with nested definitions,
+// ensuring that all referenced types are discovered and converted into `PklType`
+// definitions within the module. It uses a `HashSet` to prevent infinite recursion
+// for circular references.
+//
+// # Arguments
+//
+// * `schema` - The current schematic schema to process.
+// * `processed_types` - A mutable `HashSet` to keep track of schema names that have already been processed.
+// * `pkl_types` - A mutable vector to accumulate all discovered and converted `PklType` definitions.
+//
+// # Returns
+//
+// A `Result` indicating success or failure. Errors can occur during schema conversion.
+//
+// # Logic
+//
+// 1. **Base Case**: If the schema has already been processed (present in `processed_types`),
+//    it's skipped to prevent infinite loops.
+// 2. **Mark as Processed**: The current schema's name is added to `processed_types`.
+// 3. **Convert to PklType**: The schema is converted into a `PklType`.
+// 4. **Recursive Descent**: Based on the schema's type:
+//    - **Struct/Object**: Iterates through fields/properties and recursively calls `process_nested_schema`
+//      for each field's schema.
+//    - **Array**: Recursively calls `process_nested_schema` for the `items_type`.
+//    - **Union**: Recursively calls `process_nested_schema` for each `variants_type`.
+//    - **Reference**: Recursively calls `process_nested_schema` for the referenced schema.
+// 5. **Accumulate**: The converted `PklType` is added to the `pkl_types` vector.
+fn process_schema_recursively(
+        &self,
+        schema: &Schema,
+        processed_types: &mut HashSet<String>,
+        pkl_types: &mut Vec<PklType>,
+    ) -> Result<()> {
+        let schema_name = schema.name.clone().unwrap_or_default();
+
+        if schema_name.is_empty() {
+            // Anonymous schema, process its children but don't add itself as a top-level type
+            self.process_nested_schema(schema, processed_types, pkl_types)?;
+            return Ok(());
         }
 
-        debug!(
-            "Final PklType for '{}': kind={:?}, properties={}, enum_values={:?}",
-            name,
-            pkl_type.kind,
-            pkl_type.properties.len(),
-            pkl_type.enum_values
-        );
-        Ok(pkl_type)
+        if processed_types.contains(&schema_name) {
+            debug!("Skipping already processed schema: {}", schema_name);
+            return Ok(());
+        }
+
+        debug!("Processing schema recursively: {}", schema_name);
+        processed_types.insert(schema_name.clone());
+
+        // Process nested types first to ensure they are available when converting the parent
+        self.process_nested_schema(schema, processed_types, pkl_types)?;
+
+        // Convert the current schema to a PklType and add it
+        let pkl_type = self.convert_schema_to_pkl_type(schema, &schema_name)?;
+        pkl_types.push(pkl_type);
+
+        Ok(())
+    }
+
+    /// Helper for `process_schema_recursively` to handle nested schemas within fields, arrays, unions, etc.
+    fn process_nested_schema(
+        &self,
+        schema: &Schema,
+        processed_types: &mut HashSet<String>,
+        pkl_types: &mut Vec<PklType>,
+    ) -> Result<()> {
+        match &schema.ty {
+            SchemaType::Struct(struct_type) => {
+                for field in struct_type.fields.values() {
+                    self.process_schema_recursively(&field.schema, processed_types, pkl_types)?;
+                }
+            }
+            SchemaType::Object(object_type) => {
+                self.process_schema_recursively(&object_type.key_type, processed_types, pkl_types)?;
+                self.process_schema_recursively(&object_type.value_type, processed_types, pkl_types)?;
+                // No named properties in ObjectType; only key_type and value_type are relevant.
+            }
+            SchemaType::Array(array_type) => {
+                self.process_schema_recursively(&array_type.items_type, processed_types, pkl_types)?;
+            }
+            SchemaType::Union(union_type) => {
+                for variant_schema in &union_type.variants_types {
+                    self.process_schema_recursively(variant_schema, processed_types, pkl_types)?;
+                }
+            }
+            SchemaType::Reference(ref_name) => {
+                // For references, we need to find the actual schema definition
+                // This assumes the schematic generator has already collected all schemas.
+                // We don't have access to the full schema map here, so this needs to be
+                // handled at the top level of convert_schemas_to_pkl or by ensuring
+                // schematic_types::Schema::name is always populated for references.
+                // For now, we'll rely on the top-level processing to pick up referenced types.
+                debug!("Encountered reference type '{}' during recursive processing.", ref_name);
+            }
+            _ => {
+                // Primitive types, enums, etc., do not have nested schemas to recurse into
+            }
+        }
+        Ok(())
     }
 
     /// Converts a struct field from schematic into a Pkl property definition.
@@ -1438,7 +1559,7 @@ impl SchemaGenerator {
             .get(&type_name)
             .cloned()
             .unwrap_or(type_name))
-    }
+        }
 }
 
 /// Convenience Functions
@@ -1640,6 +1761,7 @@ mod tests {
             include_examples: true,
             include_validation: true,
             include_deprecated: false,
+            no_extends: false,
             header: Some("Test header".to_string()),
             footer: None,
             output_dir: std::env::temp_dir().join("test_pkl"),
@@ -2298,11 +2420,6 @@ mod tests {
             Some("Moon test configuration schema".to_string())
         );
         assert_eq!(module.types.len(), 1);
-        assert_eq!(module.exports.len(), 1);
-
-        let export = &module.exports[0];
-        assert_eq!(export.name, "TestConfig");
-        assert_eq!(export.type_name, "TestConfig");
     }
 
     #[test]
@@ -2872,18 +2989,15 @@ mod tests {
             module.documentation,
             Some("Moon workspace configuration schema".to_string())
         );
-        assert_eq!(module.types.len(), 3);
+        // Only non-deprecated, non-top-level types should be present
+        assert_eq!(module.types.len(), 1);
 
-        // Should export the main config
-        assert_eq!(module.exports.len(), 1);
-        assert_eq!(module.exports[0].name, "WorkspaceConfig");
-        assert_eq!(module.exports[0].type_name, "WorkspaceConfig");
 
-        // Verify all types are present
+        // Verify only non-deprecated types are present
         let type_names: Vec<&String> = module.types.iter().map(|t| &t.name).collect();
-        assert!(type_names.contains(&&"WorkspaceConfig".to_string()));
         assert!(type_names.contains(&&"TaskType".to_string()));
-        assert!(type_names.contains(&&"LegacyConfig".to_string()));
+        // Deprecated type "LegacyConfig" should not be present
+        assert!(!type_names.contains(&&"LegacyConfig".to_string()));
     }
 
     #[test]

@@ -48,6 +48,7 @@
 //!     include_examples: true,
 //!     include_validation: true,
 //!     include_deprecated: true, // Include everything for development
+//!     no_extends: false,
 //!     split_types: true,        // Separate files for easier editing
 //!     ..Default::default()
 //! };
@@ -61,6 +62,7 @@
 //!     include_comments: false,
 //!     include_examples: false,
 //!     include_deprecated: false, // Clean output for production
+//!     no_extends: true, // prevent config extension from causing drift
 //!     split_types: false,        // Single file for deployment
 //!     header: Some("// Production Pkl Schema\n".to_string()),
 //!     ..Default::default()
@@ -121,6 +123,7 @@ use std::path::PathBuf;
 ///     include_examples: true,
 ///     include_validation: true,
 ///     include_deprecated: true,
+///     no_extends: false,
 ///     header: Some("/// Comprehensive Moon Configuration Schema\n".to_string()),
 ///     output_dir: PathBuf::from("./docs/schemas"),
 ///     ..Default::default()
@@ -201,10 +204,19 @@ pub struct GeneratorConfig {
     /// migration scenarios.
     pub include_deprecated: bool,
 
+    /// Removes the `open` keyword from generated `pkl` classes. (`open class Dog` -> `class Dog`).
+    ///
+    /// If `false` (default), classes are generated with the `open` keyword, which
+    /// allows them to be extended. This setting is possibly useful for keeping tight
+    /// configs across large projects, though it doesn't stop someone from just
+    /// creating their own shadow config.
+    pub no_extends: bool,
+
     /// Custom header content prepended to all generated files.
     ///
     /// Useful for adding copyright notices, generation timestamps,
-    /// or custom documentation headers.
+    /// or custom documentation headers. `space-pkl`'s headers will still be
+    /// included below these.
     ///
     /// # Example
     /// ```rust
@@ -248,12 +260,11 @@ pub struct GeneratorConfig {
     /// # Multi-file Output (split_types: true)
     /// ```text
     /// pkl-schemas/
-    /// ├── workspace.pkl
-    /// ├── project.pkl
-    /// ├── template.pkl
-    /// ├── toolchain.pkl
-    /// ├── tasks.pkl
-    /// └── mod.pkl
+    /// ├── Workspace.pkl
+    /// ├── Project.pkl
+    /// ├── Template.pkl
+    /// ├── Toolchain.pkl
+    /// ├── Tasks.pkl
     /// ```
     ///
     /// # Single-file Output (split_types: false)
@@ -299,6 +310,7 @@ impl Default for GeneratorConfig {
             include_examples: true,
             include_validation: true,
             include_deprecated: false,
+            no_extends: false,
             header: Some(default_header()),
             footer: None,
             output_dir: PathBuf::from("./pkl-schemas"),
@@ -439,10 +451,10 @@ pub struct TemplateConfig {
     /// # Generated Template Structure
     /// ```text
     /// output_dir/
-    /// ├── workspace.pkl          # Schema definitions
-    /// ├── workspace.template.pkl # Usage template with examples
-    /// ├── project.pkl
-    /// ├── project.template.pkl
+    /// ├── Workspace.pkl          # Schema definitions
+    /// ├── workspace.Template.pkl # Usage template with examples
+    /// ├── Project.pkl
+    /// ├── project.Template.pkl
     /// └── ...
     /// ```
     ///
@@ -506,12 +518,11 @@ impl Default for TemplateConfig {
 /// Each schema type maps to specific output files:
 /// ```text
 /// pkl-schemas/
-/// ├── workspace.pkl   # Workspace configuration
-/// ├── project.pkl     # Project configuration
-/// ├── template.pkl    # Template definitions
-/// ├── toolchain.pkl   # Toolchain management
-/// ├── tasks.pkl       # Task configuration
-/// └── mod.pkl         # Module index (when split_types: true)
+/// ├── Workspace.pkl   # Workspace configuration
+/// ├── Project.pkl     # Project configuration
+/// ├── Template.pkl    # Template definitions
+/// ├── Toolchain.pkl   # Toolchain management
+/// ├── Tasks.pkl       # Task configuration
 /// ```
 ///
 /// # Usage Examples
@@ -595,7 +606,7 @@ pub enum SchemaType {
     /// - `ConstraintsConfig` - Workspace-level validation rules
     ///
     /// # Output File
-    /// `workspace.pkl`
+    /// `Workspace.pkl`
     Workspace,
 
     /// Project configuration schema.
@@ -610,7 +621,7 @@ pub enum SchemaType {
     /// - `PlatformConfig` - Platform and environment configuration
     ///
     /// # Output File
-    /// `project.pkl`
+    /// `Project.pkl`
     Project,
 
     /// Template configuration schema.
@@ -625,7 +636,7 @@ pub enum SchemaType {
     /// - `SubstitutionConfig` - Content replacement patterns
     ///
     /// # Output File
-    /// `template.pkl`
+    /// `Template.pkl`
     Template,
 
     /// Toolchain configuration schema.
@@ -640,7 +651,7 @@ pub enum SchemaType {
     /// - `PlatformToolConfig` - Platform-specific tool settings
     ///
     /// # Output File
-    /// `toolchain.pkl`
+    /// `Toolchain.pkl`
     Toolchain,
 
     /// Tasks configuration schema.
@@ -655,7 +666,7 @@ pub enum SchemaType {
     /// - `ExecutionConfig` - Task execution environment and settings
     ///
     /// # Output File
-    /// `tasks.pkl`
+    /// `Tasks.pkl`
     Tasks,
 
     /// All schema types.
@@ -693,11 +704,11 @@ impl SchemaType {
     /// ```rust
     /// use space_pkl::prelude::*;
     ///
-    /// assert_eq!(SchemaType::Workspace.filename(), "workspace.pkl");
-    /// assert_eq!(SchemaType::Project.filename(), "project.pkl");
-    /// assert_eq!(SchemaType::Template.filename(), "template.pkl");
-    /// assert_eq!(SchemaType::Toolchain.filename(), "toolchain.pkl");
-    /// assert_eq!(SchemaType::Tasks.filename(), "tasks.pkl");
+    /// assert_eq!(SchemaType::Workspace.filename(), "Workspace.pkl");
+    /// assert_eq!(SchemaType::Project.filename(), "Project.pkl");
+    /// assert_eq!(SchemaType::Template.filename(), "Template.pkl");
+    /// assert_eq!(SchemaType::Toolchain.filename(), "Toolchain.pkl");
+    /// assert_eq!(SchemaType::Tasks.filename(), "Tasks.pkl");
     /// ```
     ///
     /// # Panics
@@ -710,11 +721,11 @@ impl SchemaType {
     /// ```
     pub fn filename(&self) -> &'static str {
         match self {
-            Self::Workspace => "workspace.pkl",
-            Self::Project => "project.pkl",
-            Self::Template => "template.pkl",
-            Self::Toolchain => "toolchain.pkl",
-            Self::Tasks => "tasks.pkl",
+            Self::Workspace => "Workspace.pkl",
+            Self::Project => "Project.pkl",
+            Self::Template => "Template.pkl",
+            Self::Toolchain => "Toolchain.pkl",
+            Self::Tasks => "Tasks.pkl",
             Self::All => unreachable!("All is not a single file"),
         }
     }
@@ -786,7 +797,7 @@ impl SchemaType {
 /// //!
 /// //! Generated by space-pkl v0.1.0
 /// //! Source: https://github.com/knitli/space-pkl
-/// //! Moon: https://github.com/moonrepo/moon
+/// //! Moon: https://moonrepo.dev
 /// //!
 /// //! This schema provides type-safe configuration authoring for Moon workspace management.
 /// ```
@@ -804,7 +815,7 @@ fn default_header() -> String {
 //!
 //! Generated by space-pkl v{}
 //! Source: https://github.com/knitli/space-pkl
-//! Moon: https://github.com/moonrepo/moon
+//! Moon: https://moonrepo.dev
 //!
 //! This schema provides type-safe configuration authoring for Moon workspace management.
 
@@ -907,11 +918,11 @@ mod tests {
 
     #[test]
     fn test_schema_type_filename() {
-        assert_eq!(SchemaType::Workspace.filename(), "workspace.pkl");
-        assert_eq!(SchemaType::Project.filename(), "project.pkl");
-        assert_eq!(SchemaType::Template.filename(), "template.pkl");
-        assert_eq!(SchemaType::Toolchain.filename(), "toolchain.pkl");
-        assert_eq!(SchemaType::Tasks.filename(), "tasks.pkl");
+        assert_eq!(SchemaType::Workspace.filename(), "Workspace.pkl");
+        assert_eq!(SchemaType::Project.filename(), "Project.pkl");
+        assert_eq!(SchemaType::Template.filename(), "Template.pkl");
+        assert_eq!(SchemaType::Toolchain.filename(), "Toolchain.pkl");
+        assert_eq!(SchemaType::Tasks.filename(), "Tasks.pkl");
     }
 
     #[test]
@@ -979,6 +990,7 @@ mod tests {
             include_examples: false,
             include_validation: false,
             include_deprecated: true,
+            no_extends: true,
             header: Some("Custom header".to_string()),
             footer: Some("Custom footer".to_string()),
             output_dir: PathBuf::from("/custom/path"),
@@ -997,6 +1009,7 @@ mod tests {
         assert!(!config.include_examples);
         assert!(!config.include_validation);
         assert!(config.include_deprecated);
+        assert!(config.no_extends);
         assert_eq!(config.header, Some("Custom header".to_string()));
         assert_eq!(config.footer, Some("Custom footer".to_string()));
         assert_eq!(config.output_dir, PathBuf::from("/custom/path"));
@@ -1070,6 +1083,7 @@ mod tests {
             include_examples: false,
             include_validation: true,
             include_deprecated: false,
+            no_extends: false,
             header: None,
             footer: Some("Custom footer".to_string()),
             output_dir: PathBuf::from("./test-output"),
@@ -1083,6 +1097,7 @@ mod tests {
         assert!(!config.include_examples);
         assert!(config.include_validation);
         assert!(!config.include_deprecated);
+        assert!(!config.no_extends);
         assert!(config.header.is_none());
         assert_eq!(config.footer, Some("Custom footer".to_string()));
         assert_eq!(config.output_dir, PathBuf::from("./test-output"));
@@ -1274,7 +1289,7 @@ mod tests {
         assert!(header.contains("Moon Configuration Schema"));
         assert!(header.contains("Generated by space-pkl"));
         assert!(header.contains("github.com/knitli/space-pkl"));
-        assert!(header.contains("github.com/moonrepo/moon"));
+        assert!(header.contains("moonrepo.dev"));
         assert!(header.contains("type-safe configuration"));
         assert!(header.starts_with("//!"));
         assert!(header.ends_with("\n"));

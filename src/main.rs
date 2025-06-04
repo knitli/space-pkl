@@ -83,6 +83,10 @@ enum Commands {
         #[arg(long)]
         include_deprecated: bool,
 
+        // Remove `open` keyword from classes
+        #[arg(long)]
+        no_extends: bool,
+
         /// Custom header for generated files
         #[arg(long)]
         header: Option<String>,
@@ -90,10 +94,6 @@ enum Commands {
         /// Custom footer for generated files
         #[arg(long)]
         footer: Option<String>,
-
-        /// Module name for generated schemas
-        #[arg(long, default_value = "moon")]
-        module_name: String,
 
         /// Generate as single file instead of split types
         #[arg(long)]
@@ -163,188 +163,180 @@ async fn main() -> Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to initialize logging")?;
 
-    match cli.command {
-        Commands::Generate {
-            schema_type,
-            output,
-            overwrite,
-            no_comments,
-            no_examples,
-            include_deprecated,
-            header,
-            footer,
-            module_name,
-            single_file,
-        } => {
-            let config = GeneratorConfig {
-                include_comments: !no_comments,
-                include_examples: !no_examples,
-                include_deprecated,
-                header: header.or_else(|| Some(default_header())),
-                footer,
-                output_dir: output.clone(),
-                module_name,
-                split_types: !single_file,
-                ..Default::default()
-            };
+   match cli.command {
+       Commands::Generate {
+           schema_type,
+           output,
+           overwrite,
+           no_comments,
+           no_examples,
+           include_deprecated,
+           no_extends,
+           header,
+           footer,
+           single_file,
+       } => {
+           let config = GeneratorConfig {
+               include_comments: !no_comments,
+               include_examples: !no_examples,
+               include_deprecated,
+               no_extends,
+               header: header.or_else(|| Some(default_header())),
+               footer,
+               output_dir: output.clone(),
+               split_types: !single_file,
+               ..Default::default()
+           };
 
-            let generator = SchemaGenerator::new(config);
-            let schema_type_enum = SchemaType::from(schema_type);
+           let generator = SchemaGenerator::new(config);
+           let schema_type_enum = SchemaType::from(schema_type);
 
-            // Check for existing files and handle overwrite logic
-            let files_to_generate = match schema_type_enum {
-                SchemaType::All => vec![
-                    SchemaType::Workspace,
-                    SchemaType::Project,
-                    SchemaType::Template,
-                    SchemaType::Toolchain,
-                    SchemaType::Tasks,
-                ],
-                single_type => vec![single_type],
-            };
+           // Check for existing files and handle overwrite logic
+           let files_to_generate = match schema_type_enum {
+               SchemaType::All => vec![
+                   SchemaType::Workspace,
+                   SchemaType::Project,
+                   SchemaType::Template,
+                   SchemaType::Toolchain,
+                   SchemaType::Tasks,
+               ],
+               single_type => vec![single_type],
+           };
 
-            if !overwrite {
-                let mut existing_files = Vec::new();
-                for file_type in &files_to_generate {
-                    let file_path = output.join(file_type.filename());
-                    if file_path.exists() {
-                        existing_files.push(file_path);
-                    }
-                }
+           if !overwrite {
+               let mut existing_files = Vec::new();
+               for file_type in &files_to_generate {
+                   let file_path = output.join(file_type.filename());
+                   if file_path.exists() {
+                       existing_files.push(file_path);
+                   }
+               }
 
-                if !existing_files.is_empty() {
-                    eprintln!("Error: The following files already exist:");
-                    for file in &existing_files {
-                        eprintln!("  {}", file.display());
-                    }
-                    eprintln!("Use --overwrite to overwrite existing files, or specify a different output directory.");
-                    return Ok(());
-                }
-            }
+               if !existing_files.is_empty() {
+                   eprintln!("Error: The following files already exist:");
+                   for file in &existing_files {
+                       eprintln!("  {}", file.display());
+                   }
+                   eprintln!("Use --overwrite to overwrite existing files, or specify a different output directory.");
+                   return Ok(());
+               }
+           }
 
-            // Create output directory
-            std::fs::create_dir_all(&output)
-                .into_diagnostic()
-                .wrap_err("Failed to create output directory")?;
+           // Create output directory
+           std::fs::create_dir_all(&output)
+               .into_diagnostic()
+               .wrap_err("Failed to create output directory")?;
 
-            match schema_type_enum {
-                SchemaType::All => {
-                    info!("Generating all Moon configuration schemas");
-                    generator.generate_all()?;
+           match schema_type_enum {
+               SchemaType::All => {
+                   info!("Generating all Moon configuration schemas");
+                   generator.generate_all()?;
 
-                    // Verify all files were created
-                    for file_type in &files_to_generate {
-                        let file_path = output.join(file_type.filename());
-                        if !file_path.exists() {
-                            warn!("Failed to create file: {}", file_path.display());
-                        } else {
-                            info!("Generated: {}", file_path.display());
-                        }
-                    }
+                   // Verify all files were created
+                   for file_type in &files_to_generate {
+                       let file_path = output.join(file_type.filename());
+                       if !file_path.exists() {
+                           warn!("Failed to create file: {}", file_path.display());
+                       } else {
+                           info!("Generated: {}", file_path.display());
+                       }
+                   }
+               },
+               SchemaType::Workspace => {
+                   info!("Generating workspace schema");
+                   let schema = generator.generate_workspace_schema()?;
+                   let file_path = output.join(schema_type_enum.filename());
+                   std::fs::write(&file_path, schema).into_diagnostic()?;
 
-                    // Check for module index if split_types is enabled
-                    if !single_file {
-                        let mod_file = output.join("mod.pkl");
-                        if !mod_file.exists() {
-                            warn!("Failed to create module index: {}", mod_file.display());
-                        } else {
-                            info!("Generated module index: {}", mod_file.display());
-                        }
-                    }
-                }
-                SchemaType::Workspace => {
-                    info!("Generating workspace schema");
-                    let schema = generator.generate_workspace_schema()?;
-                    let file_path = output.join(schema_type_enum.filename());
-                    std::fs::write(&file_path, schema).into_diagnostic()?;
+                   if !file_path.exists() {
+                       warn!("Failed to verify file creation: {}", file_path.display());
+                   } else {
+                       info!("Generated: {}", file_path.display());
+                   }
+               },
+               SchemaType::Project => {
+                   info!("Generating project schema");
+                   let schema = generator.generate_project_schema()?;
+                   let file_path = output.join(schema_type_enum.filename());
+                   std::fs::write(&file_path, schema).into_diagnostic()?;
 
-                    if !file_path.exists() {
-                        warn!("Failed to verify file creation: {}", file_path.display());
-                    } else {
-                        info!("Generated: {}", file_path.display());
-                    }
-                }
-                SchemaType::Project => {
-                    info!("Generating project schema");
-                    let schema = generator.generate_project_schema()?;
-                    let file_path = output.join(schema_type_enum.filename());
-                    std::fs::write(&file_path, schema).into_diagnostic()?;
+                   if !file_path.exists() {
+                       warn!("Failed to verify file creation: {}", file_path.display());
+                   } else {
+                       info!("Generated: {}", file_path.display());
+                   }
+               },
+               SchemaType::Template => {
+                   info!("Generating template schema");
+                   let schema = generator.generate_template_schema()?;
+                   let file_path = output.join(schema_type_enum.filename());
+                   std::fs::write(&file_path, schema).into_diagnostic()?;
 
-                    if !file_path.exists() {
-                        warn!("Failed to verify file creation: {}", file_path.display());
-                    } else {
-                        info!("Generated: {}", file_path.display());
-                    }
-                }
-                SchemaType::Template => {
-                    info!("Generating template schema");
-                    let schema = generator.generate_template_schema()?;
-                    let file_path = output.join(schema_type_enum.filename());
-                    std::fs::write(&file_path, schema).into_diagnostic()?;
+                   if !file_path.exists() {
+                       warn!("Failed to verify file creation: {}", file_path.display());
+                   } else {
+                       info!("Generated: {}", file_path.display());
+                   }
+               },
+               SchemaType::Toolchain => {
+                   info!("Generating toolchain schema");
+                   let schema = generator.generate_toolchain_schema()?;
+                   let file_path = output.join(schema_type_enum.filename());
+                   std::fs::write(&file_path, schema).into_diagnostic()?;
 
-                    if !file_path.exists() {
-                        warn!("Failed to verify file creation: {}", file_path.display());
-                    } else {
-                        info!("Generated: {}", file_path.display());
-                    }
-                }
-                SchemaType::Toolchain => {
-                    info!("Generating toolchain schema");
-                    let schema = generator.generate_toolchain_schema()?;
-                    let file_path = output.join(schema_type_enum.filename());
-                    std::fs::write(&file_path, schema).into_diagnostic()?;
+                   if !file_path.exists() {
+                       warn!("Failed to verify file creation: {}", file_path.display());
+                   } else {
+                       info!("Generated: {}", file_path.display());
+                   }
+               },
+               SchemaType::Tasks => {
+                   info!("Generating tasks schema");
+                   let schema = generator.generate_tasks_schema()?;
+                   let file_path = output.join(schema_type_enum.filename());
+                   std::fs::write(&file_path, schema).into_diagnostic()?;
 
-                    if !file_path.exists() {
-                        warn!("Failed to verify file creation: {}", file_path.display());
-                    } else {
-                        info!("Generated: {}", file_path.display());
-                    }
-                }
-                SchemaType::Tasks => {
-                    info!("Generating tasks schema");
-                    let schema = generator.generate_tasks_schema()?;
-                    let file_path = output.join(schema_type_enum.filename());
-                    std::fs::write(&file_path, schema).into_diagnostic()?;
+                   if !file_path.exists() {
+                       warn!("Failed to verify file creation: {}", file_path.display());
+                   } else {
+                       info!("Generated: {}", file_path.display());
+                   }
+               },
+           }
+       },
 
-                    if !file_path.exists() {
-                        warn!("Failed to verify file creation: {}", file_path.display());
-                    } else {
-                        info!("Generated: {}", file_path.display());
-                    }
-                }
-            }
-        }
+      Commands::Init {
+          config_type,
+          output: _,
+          with_examples: _,
+      } => {
+          let schema_type_enum = SchemaType::from(config_type);
+          info!(
+              "Initializing {} configuration",
+              schema_type_enum.module_name()
+          );
+          // TODO: Implement template initialization
+          println!("Template initialization not yet implemented");
+      },
 
-        Commands::Init {
-            config_type,
-            output: _,
-            with_examples: _,
-        } => {
-            let schema_type_enum = SchemaType::from(config_type);
-            info!(
-                "Initializing {} configuration",
-                schema_type_enum.module_name()
-            );
-            // TODO: Implement template initialization
-            println!("Template initialization not yet implemented");
-        }
+      Commands::Validate {
+          file,
+          config_type: _,
+      } => {
+          info!("Validating configuration file: {}", file.display());
+          // TODO: Implement configuration validation
+          println!("Configuration validation not yet implemented");
+      },
 
-        Commands::Validate {
-            file,
-            config_type: _,
-        } => {
-            info!("Validating configuration file: {}", file.display());
-            // TODO: Implement configuration validation
-            println!("Configuration validation not yet implemented");
-        }
     }
 
     Ok(())
-}
+} // Close main function
 
+// Returns the default header for generated schemas.
 fn default_header() -> String {
-    format!(
-        r#"//! Moon Configuration Schema for Pkl
+   format!(
+       r#"//! Moon Configuration Schema for Pkl
 //!
 //! Generated by space-pkl v{}
 //! Source: https://github.com/knitli/space-pkl
@@ -359,7 +351,7 @@ fn default_header() -> String {
 
 "#,
         env!("CARGO_PKG_VERSION")
-    )
+   )
 }
 
 #[cfg(test)]
@@ -379,9 +371,9 @@ mod tests {
                 no_comments,
                 no_examples,
                 include_deprecated,
+                no_extends,
                 header,
                 footer,
-                module_name,
                 single_file,
             } => {
                 assert!(matches!(schema_type, CliSchemaType::All));
@@ -390,9 +382,9 @@ mod tests {
                 assert!(!no_comments);
                 assert!(!no_examples);
                 assert!(!include_deprecated);
+                assert!(!no_extends);
                 assert!(header.is_none());
                 assert!(footer.is_none());
-                assert_eq!(module_name, "moon");
                 assert!(!single_file);
             }
             _ => panic!("Expected Generate command"),
@@ -461,9 +453,9 @@ mod tests {
                 no_comments,
                 no_examples,
                 include_deprecated,
+                no_extends,
                 header,
                 footer,
-                module_name,
                 single_file,
             } => {
                 assert!(matches!(schema_type, CliSchemaType::Workspace));
@@ -474,8 +466,8 @@ mod tests {
                 assert!(include_deprecated);
                 assert_eq!(header.as_ref().unwrap(), "Custom header");
                 assert_eq!(footer.as_ref().unwrap(), "Custom footer");
-                assert_eq!(module_name, "test-module");
                 assert!(single_file);
+                assert!(no_extends);
             }
             _ => panic!("Expected Generate command"),
         }
@@ -650,6 +642,7 @@ mod tests {
             "--overwrite",
             "--no-comments",
             "--include-deprecated",
+            "--no-extends",
             "--module-name",
             "custom-moon",
             "--single-file",
@@ -665,7 +658,7 @@ mod tests {
                 overwrite,
                 no_comments,
                 include_deprecated,
-                module_name,
+                no_extends,
                 single_file,
                 ..
             } => {
@@ -674,7 +667,7 @@ mod tests {
                 assert!(overwrite);
                 assert!(no_comments);
                 assert!(include_deprecated);
-                assert_eq!(module_name, "custom-moon");
+                assert!(no_extends);
                 assert!(single_file);
             }
             _ => panic!("Expected Generate command"),
@@ -702,13 +695,11 @@ mod tests {
                 output,
                 header,
                 footer,
-                module_name,
                 ..
             } => {
                 assert_eq!(output, PathBuf::from("./测试/输出/🚀"));
                 assert_eq!(header.as_ref().unwrap(), "Unicode header: 测试 🎉");
                 assert_eq!(footer.as_ref().unwrap(), "Unicode footer: ⭐ 完成");
-                assert_eq!(module_name, "测试模块");
             }
             _ => panic!("Expected Generate command"),
         }
@@ -843,20 +834,20 @@ mod tests {
         let no_comments = true;
         let no_examples = false;
         let include_deprecated = true;
+        let no_extends = true;
         let header = Some("Custom header".to_string());
         let footer = None;
         let output = PathBuf::from("/tmp/test");
-        let module_name = "test_module".to_string();
         let single_file = true;
 
         let config = GeneratorConfig {
             include_comments: !no_comments,
             include_examples: !no_examples,
             include_deprecated,
+            no_extends,
             header: header.or_else(|| Some(default_header())),
             footer,
             output_dir: output.clone(),
-            module_name: module_name.clone(),
             split_types: !single_file,
             ..Default::default()
         };
@@ -864,10 +855,10 @@ mod tests {
         assert!(!config.include_comments); // no_comments was true
         assert!(config.include_examples); // no_examples was false
         assert!(config.include_deprecated);
+        assert!(config.no_extends);
         assert_eq!(config.header.as_ref().unwrap(), "Custom header");
         assert!(config.footer.is_none());
         assert_eq!(config.output_dir, output);
-        assert_eq!(config.module_name, module_name);
         assert!(!config.split_types); // single_file was true
     }
 
@@ -877,20 +868,20 @@ mod tests {
         let no_comments = false;
         let no_examples = false;
         let include_deprecated = false;
+        let no_extends = false;
         let header: Option<String> = None;
         let footer = None;
         let output = PathBuf::from("./pkl-schemas");
-        let module_name = "moon".to_string();
         let single_file = false;
 
         let config = GeneratorConfig {
             include_comments: !no_comments,
             include_examples: !no_examples,
             include_deprecated,
+            no_extends,
             header: header.or_else(|| Some(default_header())),
             footer,
             output_dir: output.clone(),
-            module_name: module_name.clone(),
             split_types: !single_file,
             ..Default::default()
         };
@@ -898,10 +889,10 @@ mod tests {
         assert!(config.include_comments);
         assert!(config.include_examples);
         assert!(!config.include_deprecated);
+        assert!(!config.no_extends);
         assert!(config.header.is_some()); // Should use default header
         assert!(config.footer.is_none());
         assert_eq!(config.output_dir, output);
-        assert_eq!(config.module_name, module_name);
         assert!(config.split_types);
     }
 

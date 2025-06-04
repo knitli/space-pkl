@@ -10,11 +10,11 @@ fn test_pkl_schemas_parse_successfully() {
     assert!(schema_dir.exists(), "Pkl schemas directory should exist");
 
     let schema_files = [
-        "workspace.pkl",
-        "project.pkl",
-        "tasks.pkl",
-        "template.pkl",
-        "toolchain.pkl",
+        "Workspace.pkl",
+        "Project.pkl",
+        "Tasks.pkl",
+        "Template.pkl",
+        "Toolchain.pkl",
         "mod.pkl",
     ];
 
@@ -71,18 +71,18 @@ fn test_pkl_test_suite() {
 /// Test specific Pkl schema validation
 #[test]
 fn test_workspace_schema_validation() {
-    let workspace_schema = Path::new("pkl-schemas/workspace.pkl");
+    let workspace_schema = Path::new("pkl-schemas/Workspace.pkl");
     assert!(workspace_schema.exists(), "Workspace schema should exist");
 
     // Test valid workspace configuration
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
-    let test_file = temp_dir.path().join("test_workspace.pkl");
+    let test_file = temp_dir.path().join("test_Workspace.pkl");
 
     let test_content = format!(
         r#"
 amends "pkl:test"
 
-import "{}/pkl-schemas/workspace.pkl" as workspace
+import "{}/pkl-schemas/Workspace.pkl" as workspace
 
 local validConfig = new workspace.WorkspaceConfig {{
   versionConstraint = ">=1.0.0"
@@ -131,19 +131,19 @@ facts {{
 /// Test project schema validation
 #[test]
 fn test_project_schema_validation() {
-    let project_schema = Path::new("pkl-schemas/project.pkl");
+    let project_schema = Path::new("pkl-schemas/Project.pkl");
     assert!(project_schema.exists(), "Project schema should exist");
 
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
-    let test_file = temp_dir.path().join("test_project.pkl");
+    let test_file = temp_dir.path().join("test_Project.pkl");
 
     let test_content = format!(
         r#"
 amends "pkl:test"
 
-import "{}/pkl-schemas/project.pkl" as project
+import "{}/pkl-schemas/Project.pkl" as project
 
-local validConfig = new project.ProjectConfig {{
+local validConfig = new project {{
   language = "typescript" as project.LanguageType
   platform = "node" as project.PlatformType
   type = "application" as project.ProjectType
@@ -181,16 +181,16 @@ facts {{
 /// Test that invalid configurations are properly rejected
 #[test]
 fn test_invalid_configuration_rejection() {
-    let workspace_schema = Path::new("pkl-schemas/workspace.pkl");
+    let workspace_schema = Path::new("pkl-schemas/Workspace.pkl");
     assert!(workspace_schema.exists(), "Workspace schema should exist");
 
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
-    let test_file = temp_dir.path().join("invalid_workspace.pkl");
+    let test_file = temp_dir.path().join("invalid_Workspace.pkl");
 
     // Create an invalid configuration with wrong types
     let invalid_content = format!(
         r#"
-import "{}/pkl-schemas/workspace.pkl" as workspace
+import "{}/pkl-schemas/Workspace.pkl" as workspace
 
 // This should fail - invalid enum values
 local invalidConfig = new workspace.WorkspaceConfig {{
@@ -289,7 +289,7 @@ facts {{
 /// Test Pkl type constraints and enums
 #[test]
 fn test_type_constraints() {
-    let project_schema = Path::new("pkl-schemas/project.pkl");
+    let project_schema = Path::new("pkl-schemas/Project.pkl");
     assert!(project_schema.exists(), "Project schema should exist");
 
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
@@ -300,7 +300,7 @@ fn test_type_constraints() {
         r#"
 amends "pkl:test"
 
-import "{}/pkl-schemas/project.pkl" as project
+import "{}/pkl-schemas/Project.pkl" as project
 
 local validConfig = new project.ProjectConfig {{
   language = "typescript" as project.LanguageType
@@ -343,7 +343,7 @@ facts {{
     let invalid_test_file = temp_dir.path().join("invalid_enums.pkl");
     let invalid_content = format!(
         r#"
-import "{}/pkl-schemas/project.pkl" as project
+import "{}/pkl-schemas/Project.pkl" as project
 
 // This should fail with invalid enum values
 local invalidConfig = new project.ProjectConfig {{
@@ -375,7 +375,7 @@ output {{ invalid: invalidConfig }}
 /// Benchmark Pkl schema parsing performance
 #[test]
 fn test_pkl_performance() {
-    let workspace_schema = Path::new("pkl-schemas/workspace.pkl");
+    let workspace_schema = Path::new("pkl-schemas/Workspace.pkl");
     assert!(workspace_schema.exists(), "Workspace schema should exist");
 
     let start = std::time::Instant::now();

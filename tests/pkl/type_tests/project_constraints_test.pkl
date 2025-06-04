@@ -4,7 +4,7 @@
 
 amends "pkl:test"
 
-import "../../../pkl-schemas/project.pkl" as project
+import "../../../pkl-schemas/Project.pkl" as project
 
 facts {
   // Test DependencyScope enum

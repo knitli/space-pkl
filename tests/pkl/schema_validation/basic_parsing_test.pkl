@@ -5,25 +5,25 @@
 amends "pkl:test"
 
 import "../../../pkl-schemas/mod.pkl" as moon
-import "../../../pkl-schemas/workspace.pkl" as workspace
-import "../../../pkl-schemas/project.pkl" as project
-import "../../../pkl-schemas/template.pkl" as template
-import "../../../pkl-schemas/toolchain.pkl" as toolchain
-import "../../../pkl-schemas/tasks.pkl" as tasks
+import "../../../pkl-schemas/Workspace.pkl" as workspace
+import "../../../pkl-schemas/Project.pkl" as project
+import "../../../pkl-schemas/Template.pkl" as template
+import "../../../pkl-schemas/Toolchain.pkl" as toolchain
+import "../../../pkl-schemas/Tasks.pkl" as tasks
 
 facts {
   // Test that all schema modules can be imported without errors
   ["can import mod.pkl"] { moon != null }
 
-  ["can import workspace.pkl"] { workspace != null }
+  ["can import Workspace.pkl"] { workspace != null }
 
-  ["can import project.pkl"] { project != null }
+  ["can import Project.pkl"] { project != null }
 
-  ["can import template.pkl"] { template != null }
+  ["can import Template.pkl"] { template != null }
 
-  ["can import toolchain.pkl"] { toolchain != null }
+  ["can import Toolchain.pkl"] { toolchain != null }
 
-  ["can import tasks.pkl"] { tasks != null }
+  ["can import Tasks.pkl"] { tasks != null }
 
   // Test that main type aliases are available
   ["WorkspaceConfig typealias exists"] { workspace.WorkspaceConfig != null }

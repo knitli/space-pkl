@@ -39,14 +39,14 @@ echo
 echo "3. Comparing the outputs to show differences"
 echo "==========================================="
 echo "Files without deprecated fields:"
-wc -l demo-output-without-deprecated/project.pkl
+wc -l demo-output-without-deprecated/Project.pkl
 echo "Files with deprecated fields:"
-wc -l demo-output-with-deprecated/project.pkl
+wc -l demo-output-with-deprecated/Project.pkl
 echo
 
-echo "4. Differences in generated PKL schemas:"
+echo "4. Differences in generated Pkl schemas:"
 echo "======================================="
-if diff -u demo-output-without-deprecated/project.pkl demo-output-with-deprecated/project.pkl | head -20; then
+if diff -u demo-output-without-deprecated/Project.pkl demo-output-with-deprecated/Project.pkl | head -20; then
     echo "No differences found in this section (deprecated fields might be elsewhere)"
 else
     echo "✅ Found differences between schemas with and without deprecated fields"

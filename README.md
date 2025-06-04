@@ -45,11 +45,11 @@ space-pkl generate
 
 This creates a `pkl-schemas/` directory with:
 
-- `workspace.pkl` - Workspace configuration schema
-- `project.pkl` - Project configuration schema
-- `template.pkl` - Template configuration schema
-- `toolchain.pkl` - Toolchain configuration schema
-- `tasks.pkl` - Tasks configuration schema
+- `Workspace.pkl` - Workspace configuration schema
+- `Project.pkl` - Project configuration schema
+- `Template.pkl` - Template configuration schema
+- `Toolchain.pkl` - Toolchain configuration schema
+- `Tasks.pkl` - Tasks configuration schema
 - `mod.pkl` - Module index
 
 ### Generate Specific Schema
@@ -65,8 +65,8 @@ space-pkl generate workspace --no-comments --output ./schemas
 ### Use in Your Pkl Files
 
 ```pkl
-// workspace.pkl
-import "pkl-schemas/workspace.pkl"
+// Workspace.pkl
+import "pkl-schemas/Workspace.pkl"
 
 config: workspace.WorkspaceConfig = new {
   projects = new {
@@ -125,7 +125,7 @@ space-pkl generate --output ./my-schemas --module-name myproject
 Initialize a new Pkl configuration from templates.
 
 ```bash
-space-pkl init workspace --output workspace.pkl --with-examples
+space-pkl init workspace --output Workspace.pkl --with-examples
 ```
 
 #### `validate <FILE>`
@@ -133,7 +133,7 @@ space-pkl init workspace --output workspace.pkl --with-examples
 Validate an existing Pkl configuration.
 
 ```bash
-space-pkl validate workspace.pkl --config-type workspace
+space-pkl validate Workspace.pkl --config-type workspace
 ```
 
 ### Global Options
@@ -237,11 +237,11 @@ All schemas include comprehensive documentation extracted from Moon's configurat
 
 | Configuration | Schema File | Description |
 |---------------|-------------|-------------|
-| Workspace | `workspace.pkl` | Root workspace configuration |
-| Project | `project.pkl` | Individual project configuration |
-| Template | `template.pkl` | Code generation templates |
-| Toolchain | `toolchain.pkl` | Language toolchain settings |
-| Tasks | `tasks.pkl` | Shared task definitions |
+| Workspace | `Workspace.pkl` | Root workspace configuration |
+| Project | `Project.pkl` | Individual project configuration |
+| Template | `Template.pkl` | Code generation templates |
+| Toolchain | `Toolchain.pkl` | Language toolchain settings |
+| Tasks | `Tasks.pkl` | Shared task definitions |
 
 ## Development
 

@@ -4,7 +4,7 @@
 
 amends "pkl:test"
 
-import "../../../pkl-schemas/workspace.pkl" as workspace
+import "../../../pkl-schemas/Workspace.pkl" as workspace
 
 facts {
   // Test enum type aliases with string literals
