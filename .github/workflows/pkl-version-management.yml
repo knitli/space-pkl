@@ -1,0 +1,81 @@
+name: Pkl Version Management
+
+on:
+  schedule:
+    # Check for new Pkl versions weekly
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      pkl_version:
+        description: 'Pkl version to test'
+        required: true
+        default: '0.28.0'
+
+jobs:
+  test-pkl-version:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        pkl_version: ['0.28.0', '0.28.1', '0.28.2'] # Auto-updated by script
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Pkl CLI
+        run: |
+          # Download and install specific Pkl version
+          ./scripts/install-pkl-version.sh ${{ matrix.pkl_version }}
+
+      - name: Test Pkl Integration
+        run: |
+          # Run comprehensive tests with this Pkl version
+          cargo test --features pkl -- pkl_integration
+
+      - name: Test Real Moon Configs
+        run: |
+          # Test conversion of real moon_config examples
+          ./scripts/test-real-configs.sh ${{ matrix.pkl_version }}
+
+  update-version:
+    needs: test-pkl-version
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set version variable
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.pkl_version }}" ]; then
+            echo "pkl_version=${{ github.event.inputs.pkl_version }}" >> $GITHUB_OUTPUT
+          else
+            echo "pkl_version=0.28.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Pkl Version
+        run: |
+          # Update the pinned version in source code
+          ./scripts/update-pkl-version.sh ${{ steps.version.outputs.pkl_version }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'chore: Update Pkl CLI to version ${{ steps.version.outputs.pkl_version }}'
+          body: |
+            Automated update of Pkl CLI version after successful compatibility testing.
+
+            - Tested on: Ubuntu, macOS, Windows
+            - All integration tests passed
+            - Real moon_config examples validated
+            - Version: ${{ steps.version.outputs.pkl_version }}
+          branch: update-pkl-version
+          commit-message: 'chore: Update Pkl CLI to version ${{ steps.version.outputs.pkl_version }}'

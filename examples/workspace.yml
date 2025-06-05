@@ -1,0 +1,89 @@
+# Example Moon workspace configuration for testing
+$schema: "https://moonrepo.dev/schemas/workspace.json"
+
+# Workspace metadata
+workspace:
+  name: "example-workspace"
+  description: "Example workspace for testing moon-config-cli"
+
+# Project discovery
+projects:
+  - "apps/*"
+  - "libs/*"
+  - "tools/*"
+
+# Version control configuration
+vcs:
+  manager: git
+  defaultBranch: main
+  remoteCandidates:
+    - "origin"
+    - "upstream"
+
+# CI/CD Pipeline configuration
+runner:
+  archivableTargets:
+    - "build"
+    - "test"
+  cacheLifetime: "7 days"
+  inheritColorsForPipedTasks: true
+
+# Dependency graph constraints
+constraints:
+  enforceProjectTypeRelationships: true
+  tagRelationships:
+    frontend:
+      - backend
+      - shared
+    backend:
+      - shared
+    tool:
+      - shared
+
+# Docker configuration
+docker:
+  file: "./Dockerfile"
+  image: "moonrepo/moon:latest"
+
+# Experimental features
+experiments:
+  - "taskOutputBoundaries"
+  - "partialGraph"
+
+# Environment variables
+env:
+  NODE_ENV: "development"
+  RUST_LOG: "info"
+  CI: "false"
+
+# Hasher configuration
+hasher:
+  batchSize: 25
+  optimization: accuracy
+  warnOnMissingInputs: true
+
+# Notification settings
+notifier:
+  webhookUrl: "https://hooks.slack.com/services/example"
+
+# Generator settings
+generator:
+  templates:
+    - "https://github.com/moonrepo/templates"
+    - "./templates"
+
+# Plugin configuration
+plugins:
+  - source: "https://github.com/moonrepo/rust-plugin/releases/download/v0.1.0/rust_plugin.wasm"
+    config:
+      syncProjectWorkspaceDeps: true
+  - source: "https://github.com/moonrepo/node-plugin/releases/download/v0.1.0/node_plugin.wasm"
+    config:
+      syncProjectWorkspaceDeps: true
+      syncVersionManagerConfig: "root-only"
+
+# Extensions and integrations
+extensions:
+  # Telemetry configuration
+  telemetry:
+    url: "https://api.moonrepo.dev/telemetry"

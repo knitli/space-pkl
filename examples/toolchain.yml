@@ -1,0 +1,66 @@
+# Example Moon toolchain configuration for testing
+$schema: "https://moonrepo.dev/schemas/toolchain.json"
+
+# Node.js configuration
+node:
+  version: "20.10.0"
+  packageManager: "npm"
+  npm:
+    version: "10.2.3"
+  yarn:
+    version: "1.22.19"
+  pnpm:
+    version: "8.12.1"
+  bun:
+    version: "1.0.25"
+
+# Rust configuration
+rust:
+  version: "1.75.0"
+  components:
+    - "rustfmt"
+    - "clippy"
+    - "rust-src"
+  targets:
+    - "x86_64-unknown-linux-gnu"
+    - "wasm32-unknown-unknown"
+
+# Python configuration
+python:
+  version: "3.11.7"
+  pip:
+    version: "23.3.2"
+
+# Deno configuration
+deno:
+  version: "1.40.2"
+  lockfile: false
+
+# Binary tools
+bins:
+  - id: "protoc"
+    name: "Protocol Buffers Compiler"
+    version: "24.4"
+    downloadUrl: "https://github.com/protocolbuffers/protobuf/releases/download/v24.4/protoc-24.4-linux-x86_64.zip"
+    checksums:
+      linux-x64: "sha256:abc123def456"
+      darwin-x64: "sha256:def456ghi789"
+      windows-x64: "sha256:ghi789jkl012"
+
+# Environment variables
+env:
+  CARGO_HOME: "./.cargo"
+  RUSTUP_HOME: "./.rustup"
+  NODE_ENV: "development"
+
+# Plugin settings
+plugins:
+  rust:
+    syncProjectWorkspaceDeps: true
+    inferTasksFromCargoToml: true
+  node:
+    syncProjectWorkspaceDeps: true
+    addEnginesConstraint: true
+    inferTasksFromScripts: true
+  python:
+    syncProjectWorkspaceDeps: false

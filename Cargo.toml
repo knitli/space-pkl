@@ -1,81 +1,107 @@
 [package]
 name = "space-pkl"
+publish = true
+
 version = "0.1.0"
-edition = "2021"
-description = "Generate type safe `pkl` configuration schemas/templates for your Moon workspace. Use as templates for configs, or to import and validate types for your Moon configs."
+edition = "2024"
+description = "A Rust CLI tool for Moon configuration conversion, schema generation, and Pkl tooling integration"
 license = "MIT"
 repository = "https://github.com/knitli/space-pkl"
 homepage = "https://github.com/knitli/space-pkl"
 documentation = "https://docs.rs/space-pkl"
 readme = "README.md"
-keywords = ["pkl", "moon", "schema", "configuration", "config", "template", "generator", "moonrepo", "workspace", "cli", "tooling", "devtools"]
-categories = ["development-tools", "template-engine"]
+keywords = ["moon", "pkl", "config", "cli", "conversion", "schema", "moonrepo", "configuration", "tooling", "devtools"]
+categories = ["development-tools", "command-line-utilities"]
 authors = ["Adam Poulemanos <adam@knit.li>"]
 
+[lib]
+name = "space_pkl"
+path = "src/lib.rs"
+
 [[bin]]
-name = "space-pkl"
+name = "spkl"
 path = "src/main.rs"
 
 [dependencies]
-# Core dependencies
-clap = { version = "4.4", features = ["derive", "color"], optional = true }
-miette = { version = "7.6", features = ["fancy"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = [
-  "env-filter",
-], optional = true }
+# space-pkl is primarily a CLI tool. However, it can also be used as a library, and you may just want our handy `PklRenderer`. So you can have that flexibility:
 
-# Moon configuration (we'll depend on moon's config crate)
-moon_config = { version = "0.1.4", features = [
-  "proto",
-  "loader",
-  "template",
-  "tracing",
-] }
-schematic = { version = "0.18.5", features = [
+# Required dependencies for all features
+regex = "^1.10"
+
+# Logging and tracing
+tracing = "^0.1"
+tracing-subscriber = { version = "^0.3", features = ["env-filter"] }
+
+# Core CLI dependencies (I suppose we could cut out the pretty stuff, but why would we?)
+anyhow = { version = "^1.0", optional = true }
+clap = { version = "^4.4", features = ["derive", "color"], optional = true}
+color-eyre = { version = "^0.6.5", optional = true }
+miette = { version = "^7.6", features = ["fancy"], optional = true }
+serde = { version = "^1.0", features = ["derive"], optional = true }
+thiserror = { version = "^2.0.12", optional = true }
+tokio = { version = "^1.0", features = ["rt-multi-thread", "macros", "fs"], optional = true }
+# Testing utilities (also needed for cli runtime)
+tempfile = { version = "^3.20.0", optional = true }
+
+# Pkl-specific CLI dependencies
+# -- also requires the PKL CLI tool, but we can install that in our CLI with these...
+dirs = { version = "^6.0", optional = true }
+reqwest = { version = "^0.12.19", features = ["json", "stream"], optional = true }
+which = {version = "8.0.0", optional = true }
+
+# pkl renderer dependencies
+indexmap = { version = "^2.9.0", optional = true }
+
+# json support
+serde_json = { version = "^1.0", optional = true }
+
+# yaml support
+# TODO: serde_yaml deprecated; figure out what to replace it with
+serde_yaml = { version = ">=0.9.34", optional = true }
+
+# Moon configuration and schema dependencies
+moon_config = { version = "^0.1.5", optional = true }
+schematic = { version = ">=0.18.7", features = [
   "config",
   "env",
   "extends",
   "json",
   "pkl",
+  "renderer_json_schema",
+  "renderer_typescript",
   "schema",
-  "type_indexmap",
-  "type_semver",
+  "toml",
   "validate",
-  "validate_url",
-  "yml",
-] }
-
-# File system and path handling
-walkdir = "2.4"
-globset = "0.4"
-
-# Schema types
-schematic_types = "0.10.2"
-
-# Template engine
-
-handlebars = "6.3.2"
-handlebars_misc_helpers = { version = "0.17.0", features = ["string"], default-features = false }
-indexmap = "2.0"
-lazy_static = "1.4.0" # For static HashSet of top-level config names
-
-# Optional: for better error reporting
-color-eyre = { version = "0.6.5", optional = true }
+  "yaml",
+  ]}
 
 [dev-dependencies]
-tempfile = "3.8"
-assert_fs = "1.0"
-predicates = "3.0"
-serde_json = "1.0"
+assert_fs = "^1.0"
+predicates = "^3.0"
+serde_json = "^1.0"
+tempfile = "^3.8"
 
 [features]
-default = ["cli"]
-cli = ["clap", "tracing-subscriber"]
-fancy-errors = ["color-eyre"]
+default = ["all_formats", "cli", "cli_pkl"]
+cli_pkl = ["cli", "pkl", "reqwest", "which"]
+cli = ["anyhow", "clap", "color-eyre", "dirs", "miette", "moon", "serde",
+"serde_json", "thiserror", "tokio"]
+
+moon = ["moon_config"]
+
+# Library for `PklRenderer`
+pkl_lib = ["indexmap", "pkl"]
+
+# Format support features
+all_formats = ["json", "pkl_lib", "toml", "typescript", "yaml"]
+json = ["schematic/json", "schematic/renderer_json_schema", "serde_json"]
+pkl = ["schematic/pkl"]
+toml = ["schematic/toml"]
+typescript = ["schematic/renderer_typescript"]
+yaml = ["schematic/yaml", "serde_yaml"]
+yml = ["yaml"]
+
+all = ["cli_pkl", "all_formats", "moon"]
 
 [profile.release]
 lto = true

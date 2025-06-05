@@ -1,0 +1,38 @@
+# Example Moon template configuration for testing
+$schema: "https://moonrepo.dev/schemas/template.json"
+
+# Template metadata
+title: "Rust Library Template"
+description: "A template for creating Rust library projects with best practices"
+
+# Template variables
+variables:
+  project_name:
+    type: "string"
+    prompt: "What is the name of your project?"
+    required: true
+
+  description:
+    type: "string"
+    prompt: "Provide a brief description of your project"
+    default: "A Rust library"
+
+  author:
+    type: "string"
+    prompt: "Who is the author of this project?"
+    required: true
+
+  license:
+    type: "string"
+    prompt: "What license would you like to use?"
+    default: "MIT"
+
+  include_examples:
+    type: "boolean"
+    prompt: "Include example code?"
+    default: true
+
+  min_rust_version:
+    type: "string"
+    prompt: "Minimum Rust version (MSRV)?"
+    default: "1.75.0"

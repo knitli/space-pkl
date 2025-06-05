@@ -1,0 +1,55 @@
+# Example Moon project configuration for testing
+language: rust
+type: library
+platform: system
+
+# Project metadata
+description: "Example Rust library project"
+owner: "team@example.com"
+maintainers:
+  - "dev1@example.com"
+  - "dev2@example.com"
+
+# Task configuration
+tasks:
+  build:
+    command: "cargo build"
+    inputs:
+      - "src/**/*"
+      - "Cargo.toml"
+      - "Cargo.lock"
+    outputs:
+      - "target/debug"
+    env:
+      RUST_LOG: "info"
+
+  test:
+    command: "cargo test"
+    inputs:
+      - "@build"
+      - "tests/**/*"
+    outputs:
+      - "target/debug/deps"
+    deps:
+      - "build"
+
+  lint:
+    command: "cargo clippy -- -D warnings"
+    inputs:
+      - "src/**/*"
+      - "Cargo.toml"
+
+  format:
+    command: "cargo fmt --check"
+    inputs:
+      - "src/**/*"
+
+# Development dependencies
+deps:
+  - "workspace-dep"
+  - "shared-lib"
+
+# Project-specific environment variables
+env:
+  CARGO_TARGET_DIR: "./target"
+  RUST_BACKTRACE: "1"
