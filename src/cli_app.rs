@@ -29,7 +29,7 @@ pub enum Commands {
     Install(crate::commands::install::InstallCommands),
 }
 
-/// Enhanced CLI application with comprehensive error handling
+/// CLI application with error handling
 pub async fn run() -> Result<()> {
     let cli = Cli::parse();
 

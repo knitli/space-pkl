@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deprecation Feature Demonstration Script
-# This script demonstrates the deprecation support in space-pkl
+# This script demonstrates the deprecation support in space-pklr
 
 set -e
 
@@ -17,7 +17,7 @@ function get_base_path() {
 
 global basepath="$(get_base_path)"
 
-echo "🌙 space-pkl Deprecation Feature Demonstration"
+echo "🌙 space-pklr Deprecation Feature Demonstration"
 echo "=============================================="
 echo
 
@@ -26,13 +26,13 @@ rm -rf demo-output-*
 
 echo "1. Generating schemas WITHOUT deprecated fields (default behavior)"
 echo "================================================================="
-"$base_path/target/debug/space-pkl" generate project -o demo-output-without-deprecated
+"$base_path/target/debug/space-pklr" generate project -o demo-output-without-deprecated
 echo "✅ Generated project schema without deprecated fields"
 echo
 
 echo "2. Generating schemas WITH deprecated fields included"
 echo "==================================================="
-"$base_path/target/debug/space-pkl" generate project --include-deprecated -o demo-output-with-deprecated
+"$base_path/target/debug/space-pklr" generate project --include-deprecated -o demo-output-with-deprecated
 echo "✅ Generated project schema with deprecated fields"
 echo
 
@@ -62,7 +62,7 @@ echo
 echo "6. Demonstration of CLI flags"
 echo "============================"
 echo "Available CLI options:"
-"$base_path/target/debug/space-pkl" generate --help | grep -A5 -B5 deprecated
+"$base_path/target/debug/space-pklr" generate --help | grep -A5 -B5 deprecated
 echo
 
 echo "   Use --include-deprecated flag to include deprecated fields in generated schemas"

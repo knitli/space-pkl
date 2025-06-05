@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Pkl Test Runner for space-pkl
+# Pkl Test Runner for space-pklr
 # Runs all Pkl tests and generates reports
 
 set -euo pipefail
@@ -49,11 +49,11 @@ setup_reports_dir() {
 
 setup_schemas() {
 
-    if [ -f "$PROJECT_ROOT/target/release/space-pkl" ]; then
-      cli="$PROJECT_ROOT/target/release/space-pkl"
+    if [ -f "$PROJECT_ROOT/target/release/space-pklr" ]; then
+      cli="$PROJECT_ROOT/target/release/space-pklr"
         local cli
-    elif [ -f "$PROJECT_ROOT/target/debug/space-pkl" ]; then
-      cli="$PROJECT_ROOT/target/debug/space-pkl"
+    elif [ -f "$PROJECT_ROOT/target/debug/space-pklr" ]; then
+      cli="$PROJECT_ROOT/target/debug/space-pklr"
     else
       cli="cargo run -- "
     fi
@@ -127,7 +127,7 @@ run_all_tests() {
 
 # Main execution
 main() {
-  log_info "Starting Pkl tests for space-pkl..."
+  log_info "Starting Pkl tests for space-pklr..."
 
   check_pkl_availability
 

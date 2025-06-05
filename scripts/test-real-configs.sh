@@ -276,25 +276,25 @@ cat > test_output/test_report.md << EOF
 ## Test Results Summary
 
 ### Configuration Files Tested
-$(ls examples/*.yml 2>/dev/null | wc -l) example configuration files
+$(find examples -name "*.yml" -type f 2>/dev/null | wc -l) example configuration files
 
 ### Generated Files
 \`\`\`
-$(ls test_output/ | head -20)
+$(find test_output -maxdepth 1 -type f | head -20 | sed 's|test_output/||')
 ...
 \`\`\`
 
 ### Conversion Tests
-- YAML → Pkl: $(ls test_output/*.pkl 2>/dev/null | wc -l) files
-- YAML → JSON: $(ls test_output/*.json 2>/dev/null | wc -l) files
-- Roundtrip: $(ls test_output/*_roundtrip.yml 2>/dev/null | wc -l) files
+- YAML → Pkl: $(find test_output -name "*.pkl" -type f 2>/dev/null | wc -l) files
+- YAML → JSON: $(find test_output -name "*.json" -type f 2>/dev/null | wc -l) files
+- Roundtrip: $(find test_output -name "*_roundtrip.yml" -type f 2>/dev/null | wc -l) files
 
 ### Schema Generation
-- JSON Schemas: $(ls test_output/*_schema.json 2>/dev/null | wc -l) files
-- TypeScript Definitions: $(ls test_output/*_schema.ts 2>/dev/null | wc -l) files
+- JSON Schemas: $(find test_output -name "*_schema.json" -type f 2>/dev/null | wc -l) files
+- TypeScript Definitions: $(find test_output -name "*_schema.ts" -type f 2>/dev/null | wc -l) files
 
 ### Skeleton Generation
-- Generated Skeletons: $(ls test_output/*_skeleton.* 2>/dev/null | wc -l) files
+- Generated Skeletons: $(find test_output -name "*_skeleton.*" -type f 2>/dev/null | wc -l) files
 
 EOF
 
