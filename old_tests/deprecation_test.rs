@@ -1,6 +1,6 @@
 //! Test suite for deprecation handling
 
-use space_pkl::{
+use space_pklr::{
     config::GeneratorConfig,
     templates::TemplateEngine,
     types::{PklModule, PklProperty, PklType, PklTypeKind},

@@ -1,6 +1,6 @@
-//! Moon Config CLI - A tool for configuration conversion, schema generation, and Pkl tooling integration
+//! Space Pklr - A tool for configuration conversion, schema generation, and Pkl tooling integration
 //!
-//! This is the main entry point for the Moon Config CLI tool.
+//! This is the main entry point for the Space Pklr tool.
 
 mod cli_app;
 mod config_processor;
@@ -30,7 +30,7 @@ fn init_tracing() -> Result<()> {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("moon_config_cli=info"));
+        .unwrap_or_else(|_| EnvFilter::new("spklr=info"));
 
     tracing_subscriber::registry()
         .with(
@@ -51,7 +51,7 @@ fn init_tracing() -> Result<()> {
 
 /// Run CLI with comprehensive error handling and logging
 async fn run_cli() -> Result<()> {
-    tracing::info!("Starting Moon Config CLI");
+    tracing::info!("Starting Space Pklr");
     tracing::debug!("Recommended Pkl version: {}", crate::pkl_tooling::get_recommended_pkl_version());
     tracing::debug!("Compatible Pkl versions: {:?}", crate::pkl_tooling::get_compatible_pkl_versions());
 

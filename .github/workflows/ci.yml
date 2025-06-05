@@ -84,7 +84,7 @@ jobs:
 
     - name: Generate test schemas
       run: |
-        ./target/debug/space-pkl --log-level debug generate --output test-schemas
+        ./target/debug/space-pklr --log-level debug generate --output test-schemas
 
     - name: Run unit tests
       run: cargo test --verbose --lib

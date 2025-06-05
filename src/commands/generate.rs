@@ -1,4 +1,4 @@
-//! Generate command implementation for Moon Config CLI
+//! Generate command implementation for Space Pklr
 //!
 //! This module handles schema and skeleton generation
 //!.
@@ -7,7 +7,7 @@ use clap::{Args, Subcommand};
 use miette::Result;
 use std::path::PathBuf;
 
-use crate::config_processor::{ConfigFormat, MoonConfigType};
+use crate::config_processor::MoonConfigType;
 
 /// Generate command with subcommands.
 #[derive(Subcommand)]

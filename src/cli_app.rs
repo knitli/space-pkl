@@ -1,15 +1,16 @@
-//! CLI Application module for Moon Config CLI
+//! CLI Application module for Space Pklr
 //!
 //! This module defines the clap application structure and command dispatching
 
 use clap::{Parser, Subcommand};
 use miette::Result;
-use std::path::PathBuf;
 
-/// Moon Config CLI - A tool for configuration conversion, schema generation, and Pkl tooling integration
+/// Space Pklr - A tool for configuration conversion, schema generation, and Pkl tooling integration
 #[derive(Parser)]
-#[command(name = "moon-config-cli")]
-#[command(about = "A Rust CLI tool for Moon configuration conversion, schema generation, and Pkl tooling integration")]
+#[command(name = "spklr")]
+#[command(
+    about = "A Rust CLI tool for Moon configuration conversion, schema generation, and Pkl tooling integration"
+)]
 #[command(version)]
 pub struct Cli {
     #[command(subcommand)]

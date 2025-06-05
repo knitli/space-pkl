@@ -1,14 +1,14 @@
-# space-pkl
+# space-pklr
 
 🌙 Pkl schema and template generation for [Moon](https://github.com/moonrepo/moon) workspace configurations.
 
-[![Crates.io](https://img.shields.io/crates/v/space-pkl.svg)](https://crates.io/crates/space-pkl)
-[![Documentation](https://docs.rs/space-pkl/badge.svg)](https://docs.rs/space-pkl)
+[![Crates.io](https://img.shields.io/crates/v/space-pklr.svg)](https://crates.io/crates/space-pklr)
+[![Documentation](https://docs.rs/space-pklr/badge.svg)](https://docs.rs/space-pklr)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-`space-pkl` generates type-safe [Pkl](https://pkl-lang.org/) schemas from Moon's configuration types, enabling robust configuration authoring with IDE support, validation, and documentation.
+`space-pklr` generates type-safe [Pkl](https://pkl-lang.org/) schemas from Moon's configuration types, enabling robust configuration authoring with IDE support, validation, and documentation.
 
 ## Features
 
@@ -24,14 +24,14 @@
 ### From Crates.io
 
 ```bash
-cargo install space-pkl
+cargo install space-pklr
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/knitli/space-pkl
-cd space-pkl
+git clone https://github.com/knitli/space-pklr
+cd space-pklr
 cargo install --path .
 ```
 
@@ -40,7 +40,7 @@ cargo install --path .
 ### Generate All Schemas
 
 ```bash
-space-pkl generate
+space-pklr generate
 ```
 
 This creates a `pkl-schemas/` directory with:
@@ -56,10 +56,10 @@ This creates a `pkl-schemas/` directory with:
 
 ```bash
 # Generate only workspace schema
-space-pkl generate workspace
+space-pklr generate workspace
 
 # Generate with custom options
-space-pkl generate workspace --no-comments --output ./schemas
+space-pklr generate workspace --no-comments --output ./schemas
 ```
 
 ### Use in Your Pkl Files
@@ -111,13 +111,13 @@ Generate Pkl schemas for Moon configurations.
 
 ```bash
 # Generate all schemas with defaults
-space-pkl generate
+space-pklr generate
 
 # Generate only workspace schema without comments
-space-pkl generate workspace --no-comments
+space-pklr generate workspace --no-comments
 
 # Custom output directory and module name
-space-pkl generate --output ./my-schemas --module-name myproject
+space-pklr generate --output ./my-schemas --module-name myproject
 ```
 
 #### `init <TYPE>`
@@ -125,7 +125,7 @@ space-pkl generate --output ./my-schemas --module-name myproject
 Initialize a new Pkl configuration from templates.
 
 ```bash
-space-pkl init workspace --output Workspace.pkl --with-examples
+space-pklr init workspace --output Workspace.pkl --with-examples
 ```
 
 #### `validate <FILE>`
@@ -133,7 +133,7 @@ space-pkl init workspace --output Workspace.pkl --with-examples
 Validate an existing Pkl configuration.
 
 ```bash
-space-pkl validate Workspace.pkl --config-type workspace
+space-pklr validate Workspace.pkl --config-type workspace
 ```
 
 ### Global Options
@@ -145,9 +145,9 @@ space-pkl validate Workspace.pkl --config-type workspace
 ### Basic Usage
 
 ```rust
-use space_pkl::prelude::*;
+use space_pklr::prelude::*;
 
-fn main() -> space_pkl::Result<()> {
+fn main() -> space_pklr::Result<()> {
     // Generate workspace schema
     let schema = generate_workspace_schema()?;
     println!("{}", schema);
@@ -164,10 +164,10 @@ fn main() -> space_pkl::Result<()> {
 ### Custom Configuration
 
 ```rust
-use space_pkl::prelude::*;
+use space_pklr::prelude::*;
 use std::path::PathBuf;
 
-fn main() -> space_pkl::Result<()> {
+fn main() -> space_pklr::Result<()> {
     let config = GeneratorConfig {
         include_comments: true,
         include_examples: true,
@@ -233,7 +233,7 @@ All schemas include comprehensive documentation extracted from Moon's configurat
 
 ## Moon Configuration Support
 
-`space-pkl` supports all Moon configuration types:
+`space-pklr` supports all Moon configuration types:
 
 | Configuration | Schema File | Description |
 |---------------|-------------|-------------|
@@ -253,8 +253,8 @@ All schemas include comprehensive documentation extracted from Moon's configurat
 ### Building
 
 ```bash
-git clone https://github.com/knitli/space-pkl
-cd space-pkl
+git clone https://github.com/knitli/space-pklr
+cd space-pklr
 cargo build --release
 ```
 

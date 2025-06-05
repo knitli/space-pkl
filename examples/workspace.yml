@@ -4,7 +4,7 @@ $schema: "https://moonrepo.dev/schemas/workspace.json"
 # Workspace metadata
 workspace:
   name: "example-workspace"
-  description: "Example workspace for testing moon-config-cli"
+  description: "Example workspace for testing spklr"
 
 # Project discovery
 projects:

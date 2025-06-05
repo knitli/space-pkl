@@ -1,11 +1,10 @@
-//! Pkl Tooling Module for Moon Config CLI
+//! Pkl Tooling Module for Space Pklr
 //!
 //! This module manages Pkl CLI installation, detection, and execution through proto
 //! for consistent toolchain management.
 
 use miette::Result;
 use std::path::PathBuf;
-use std::process::Command;
 
 /// Pkl CLI representation.
 #[derive(Debug, Clone)]
@@ -559,7 +558,7 @@ impl CompatibilityReport {
 
 /// Validate Pkl version compatibility with comprehensive testing
 pub async fn validate_pkl_compatibility(pkl_cli: &PklCli) -> Result<CompatibilityReport> {
-    use crate::error::CliError;
+
 
     let version = pkl_cli
         .version

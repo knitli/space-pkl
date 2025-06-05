@@ -1,4 +1,4 @@
-//! Error Handling Module for Moon Config CLI
+//! Error Handling Module for Space Pklr
 //!
 //! This module provides comprehensive error handling using miette for rich, user-friendly
 //! error reporting.
@@ -136,19 +136,6 @@ pub fn io_error_with_context<T>(
     }
 }
 
-/// Helper function to create render errors
-pub fn render_error(
-    config_type: impl Into<String>,
-    format: crate::config_processor::ConfigFormat,
-    source: impl std::error::Error + Send + Sync + 'static,
-) -> CliError {
-    CliError::RenderError {
-        config_type: config_type.into(),
-        format,
-        source: Box::new(source),
-    }
-}
-
 /// Helper function to create Pkl execution errors with context
 pub fn pkl_execution_error(
     command: impl Into<String>,
@@ -159,13 +146,6 @@ pub fn pkl_execution_error(
         command: command.into(),
         stderr: stderr.into(),
         help,
-    }
-}
-
-/// Helper function to create validation errors
-pub fn validation_error(source: impl std::error::Error + Send + Sync + 'static) -> CliError {
-    CliError::ValidationError {
-        source: Box::new(source),
     }
 }
 

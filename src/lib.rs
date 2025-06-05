@@ -1,6 +1,6 @@
-//! Moon Config CLI Library
+//! Space Pklr Library
 //!
-//! This library provides the core functionality for the Moon Config CLI tool,
+//! This library provides the core functionality for the Space Pklr tool,
 //! including configuration conversion, schema generation, and Pkl tooling integration.
 
 pub mod cli_app;
@@ -10,6 +10,6 @@ pub mod error;
 pub mod pkl_tooling;
 
 // Re-export commonly used types for convenience
-pub use error::{CliError, Result};
 pub use config_processor::{ConfigFormat, MoonConfigType};
-pub use pkl_tooling::{PklCli, PklSource, CompatibilityReport};
+pub use error::{CliError, Result};
+pub use pkl_tooling::{CompatibilityReport, PklCli, PklSource};

@@ -1,4 +1,4 @@
-//! Install command implementation for Moon Config CLI
+//! Install command implementation for Space Pklr
 //!
 //! This module handles installation of external tools like Pkl CLI
 //!.
@@ -93,19 +93,6 @@ pub async fn handle_pkl_installation(args: PklInstallArgs) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Check if tool is already installed
-///
-/// - Check if tool is already available and functional
-/// - Return version information if available
-async fn check_existing_installation() -> Result<Option<String>> {
-
-    if let Ok(Some(pkl_cli)) = crate::pkl_tooling::find_pkl_executable().await {
-        Ok(pkl_cli.version)
-    } else {
-        Ok(None)
-    }
 }
 
 /// Display installation progress

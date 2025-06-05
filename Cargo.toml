@@ -1,29 +1,29 @@
 [package]
-name = "space-pkl"
+name = "space-pklr"
 publish = true
 
 version = "0.1.0"
 edition = "2024"
 description = "A Rust CLI tool for Moon configuration conversion, schema generation, and Pkl tooling integration"
 license = "MIT"
-repository = "https://github.com/knitli/space-pkl"
-homepage = "https://github.com/knitli/space-pkl"
-documentation = "https://docs.rs/space-pkl"
+repository = "https://github.com/knitli/space-pklr"
+homepage = "https://github.com/knitli/space-pklr"
+documentation = "https://docs.rs/space-pklr"
 readme = "README.md"
 keywords = ["moon", "pkl", "config", "cli", "conversion", "schema", "moonrepo", "configuration", "tooling", "devtools"]
 categories = ["development-tools", "command-line-utilities"]
 authors = ["Adam Poulemanos <adam@knit.li>"]
 
 [lib]
-name = "space_pkl"
+name = "space_pklr"
 path = "src/lib.rs"
 
 [[bin]]
-name = "spkl"
+name = "spklr"
 path = "src/main.rs"
 
 [dependencies]
-# space-pkl is primarily a CLI tool. However, it can also be used as a library, and you may just want our handy `PklRenderer`. So you can have that flexibility:
+# space-pklr is primarily a CLI tool. However, it can also be used as a library, and you may just want our handy `PklRenderer`. So you can have that flexibility:
 
 # Required dependencies for all features
 regex = "^1.10"
@@ -41,7 +41,7 @@ serde = { version = "^1.0", features = ["derive"], optional = true }
 thiserror = { version = "^2.0.12", optional = true }
 tokio = { version = "^1.0", features = ["rt-multi-thread", "macros", "fs"], optional = true }
 # Testing utilities (also needed for cli runtime)
-tempfile = { version = "^3.20.0", optional = true }
+tempfile = { version = "3.20.0", optional = true }
 
 # Pkl-specific CLI dependencies
 # -- also requires the PKL CLI tool, but we can install that in our CLI with these...
@@ -51,6 +51,7 @@ which = {version = "8.0.0", optional = true }
 
 # pkl renderer dependencies
 indexmap = { version = "^2.9.0", optional = true }
+
 
 # json support
 serde_json = { version = "^1.0", optional = true }
@@ -79,13 +80,12 @@ schematic = { version = ">=0.18.7", features = [
 assert_fs = "^1.0"
 predicates = "^3.0"
 serde_json = "^1.0"
-tempfile = "^3.8"
 
 [features]
 default = ["all_formats", "cli", "cli_pkl"]
 cli_pkl = ["cli", "pkl", "reqwest", "which"]
 cli = ["anyhow", "clap", "color-eyre", "dirs", "miette", "moon", "serde",
-"serde_json", "thiserror", "tokio"]
+"serde_json", "thiserror", "tokio", "tempfile"]
 
 moon = ["moon_config"]
 

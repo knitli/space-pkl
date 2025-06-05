@@ -1,4 +1,4 @@
-//! Convert command implementation for Moon Config CLI
+//! Convert command implementation for Space Pklr
 //!
 //! This module handles configuration file conversion between formats
 //!.
@@ -8,7 +8,7 @@ use miette::Result;
 use std::path::PathBuf;
 
 use crate::config_processor::{ConfigFormat, MoonConfigType};
-use crate::error::{CliError, ensure_file_exists, ensure_output_writable};
+use crate::error::CliError;
 
 /// Convert command arguments.
 #[derive(Args)]
@@ -40,8 +40,8 @@ pub struct ConvertArgs {
 
 /// Handle convert command execution
 pub async fn handle_convert(args: ConvertArgs) -> Result<(), CliError> {
-    use crate::config_processor::{load_config, convert_config, detect_format_from_path, ensure_pkl_available};
-    use crate::error::{ensure_file_exists, ensure_output_writable};
+    use crate::config_processor::{load_config, convert_config, ensure_pkl_available};
+
 
     // Validate arguments
     validate_convert_args(&args)?;
@@ -65,7 +65,7 @@ pub async fn handle_convert(args: ConvertArgs) -> Result<(), CliError> {
             }
             Err(_) => {
                 println!("⚠️  Pkl CLI not found. To use Pkl conversions, install it with:");
-                println!("   moon-config-cli install pkl");
+                println!("   spklr install pkl");
 
                 // For now, proceed with placeholder conversion
                 println!("🔄 Proceeding with basic conversion (full Pkl support requires Pkl CLI)");
@@ -113,11 +113,6 @@ fn apply_format_defaults_with_pkl(from: Option<ConfigFormat>, to: Option<ConfigF
             None => ConfigFormat::Json, // Default to JSON
         }
     })
-}
-
-/// Legacy function for backward compatibility
-fn apply_format_defaults(from: Option<ConfigFormat>, to: Option<ConfigFormat>) -> ConfigFormat {
-    apply_format_defaults_with_pkl(from, to)
 }
 
 /// Validate conversion arguments

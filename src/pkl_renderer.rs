@@ -494,12 +494,10 @@ impl PklSchemaRenderer {
                     let first = self.render_field_type(&tuple.items_types[0])?;
                     let second = self.render_field_type(&tuple.items_types[1])?;
                     format!("Pair<{}, {}>", first, second)
-                } else if tuple.items_types.len() == 1 {
-                    let item_type = self.render_field_type(&tuple.items_types[0])?;
-                    format!("Listing<{}>", item_type)
                 } else {
-                    // For multiple items, treat as a generic listing of dynamic types
-                    "Listing<Dynamic>".to_string()
+                  // TODO: Handle this union
+                    let item_type = self.render_field_type(&tuple.items_types)?;
+                    format!("Listing<{}>", item_type)
                 };
                 (type_name, false)
             }
@@ -589,7 +587,8 @@ impl PklSchemaRenderer {
                 (literal_str, false)
             }
             SchemaType::Struct(_) => {
-                ("Dynamic".to_string(), false) // Should be replaced with actual class name
+              // TODO: Replace with class implementation
+                ("Dynamic".to_string(), false)
             }
             SchemaType::Reference(reference) => (self.to_pascal_case(&reference.name), false),
             SchemaType::Null => ("nothing".to_string(), false),
