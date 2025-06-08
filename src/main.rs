@@ -3,9 +3,8 @@
 //! This is the main entry point for the Space Pklr tool.
 
 mod cli_app;
-mod config_processor;
 mod pkl_tooling;
-mod error;
+mod types;
 mod commands;
 
 use miette::Result;

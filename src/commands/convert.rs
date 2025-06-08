@@ -7,15 +7,14 @@ use clap::Args;
 use miette::Result;
 use std::path::PathBuf;
 
-use crate::config_processor::{ConfigFormat, MoonConfigType};
-use crate::error::CliError;
+use crate::types::{CliError, SchemaFormat, MoonConfig};
 
 /// Convert command arguments.
 #[derive(Args)]
 pub struct ConvertArgs {
     /// Moon configuration type (required for type safety)
     #[arg(long, help = "Configuration type: project, workspace, template, toolchain, task")]
-    pub config_type: MoonConfigType,
+    pub config_type: MoonConfig,
 
     /// Path to the input configuration file
     #[arg(short, long, help = "Input configuration file path")]
@@ -27,11 +26,11 @@ pub struct ConvertArgs {
 
     /// Input format (optional, auto-detected if not provided)
     #[arg(long, help = "Input format (auto-detected if not specified)")]
-    pub from: Option<ConfigFormat>,
+    pub from: Option<SchemaFormat>,
 
     /// Output format (intelligent defaults applied)
     #[arg(long, help = "Output format (defaults to json if input is yaml, otherwise yaml)")]
-    pub to: Option<ConfigFormat>,
+    pub to: Option<SchemaFormat>,
 
     /// Overwrite existing output file
     #[arg(short, long, help = "Force overwrite of existing output files")]
@@ -40,7 +39,7 @@ pub struct ConvertArgs {
 
 /// Handle convert command execution
 pub async fn handle_convert(args: ConvertArgs) -> Result<(), CliError> {
-    use crate::config_processor::{load_config, convert_config, ensure_pkl_available};
+    use crate::_rewrite::{load_config, convert_config, ensure_pkl_available};
 
 
     // Validate arguments
@@ -58,7 +57,7 @@ pub async fn handle_convert(args: ConvertArgs) -> Result<(), CliError> {
     println!("🔧 Converting from {} to {}", detected_input_format, output_format);
 
     // Check if Pkl CLI is needed and available
-    if detected_input_format == ConfigFormat::Pkl || output_format == ConfigFormat::Pkl {
+    if detected_input_format == SchemaFormat::Pkl || output_format == SchemaFormat::Pkl {
         match ensure_pkl_available().await {
             Ok(_) => {
                 println!("✅ Pkl CLI is available");
@@ -102,25 +101,12 @@ pub async fn handle_convert(args: ConvertArgs) -> Result<(), CliError> {
 
     Ok(())
 }
-
-/// Apply intelligent defaults for conversion formats
-fn apply_format_defaults_with_pkl(from: Option<ConfigFormat>, to: Option<ConfigFormat>) -> ConfigFormat {
-    to.unwrap_or_else(|| {
-        match from {
-            Some(ConfigFormat::Yaml) => ConfigFormat::Pkl, // Encourage Pkl adoption
-            Some(ConfigFormat::Json) => ConfigFormat::Pkl, // Encourage Pkl adoption
-            Some(ConfigFormat::Pkl) => ConfigFormat::Yaml, // Pkl to YAML for compatibility
-            None => ConfigFormat::Json, // Default to JSON
-        }
-    })
-}
-
 /// Validate conversion arguments
 fn validate_convert_args(args: &ConvertArgs) -> Result<(), CliError> {
-    crate::error::ensure_file_exists(&args.input)?;
+    crate::types::ensure_file_exists(&args.input)?;
 
     if let Some(output) = &args.output {
-        crate::error::ensure_output_writable(output, args.force)?;
+        crate::types::ensure_output_writable(output, args.force)?;
     }
 
     Ok(())

@@ -51,7 +51,7 @@ which = {version = "8.0.0", optional = true }
 
 # pkl renderer dependencies
 indexmap = { version = "^2.9.0", optional = true }
-
+schematic_types = { version = "0.10.3", features = ["serde_rpkl"], optional = true }
 
 # json support
 serde_json = { version = "^1.0", optional = true }
@@ -76,6 +76,7 @@ schematic = { version = ">=0.18.7", features = [
   "yaml",
   ]}
 
+
 [dev-dependencies]
 assert_fs = "^1.0"
 predicates = "^3.0"
@@ -90,7 +91,7 @@ cli = ["anyhow", "clap", "color-eyre", "dirs", "miette", "moon", "serde",
 moon = ["moon_config"]
 
 # Library for `PklRenderer`
-pkl_lib = ["indexmap", "pkl"]
+pkl_lib = ["indexmap", "pkl", "schematic_types"]
 
 # Format support features
 all_formats = ["json", "pkl_lib", "toml", "typescript", "yaml"]
@@ -102,6 +103,7 @@ yaml = ["schematic/yaml", "serde_yaml"]
 yml = ["yaml"]
 
 all = ["cli_pkl", "all_formats", "moon"]
+schematic_types = ["dep:schematic_types"]
 
 [profile.release]
 lto = true

@@ -29,7 +29,7 @@ pub enum PklSource {
 ///
 /// Implements proto-first installation strategy with fallbacks as specified in
 pub async fn install_pkl(version: Option<String>) -> Result<PklCli> {
-    use crate::error::CliError;
+    use crate::types::CliError;
 
     let target_version = version.unwrap_or_else(|| get_recommended_pkl_version().to_string());
 
@@ -91,7 +91,7 @@ pub async fn install_pkl(version: Option<String>) -> Result<PklCli> {
 ///
 /// Searches for Pkl CLI in order of preference: proto -> system PATH -> manual installations
 pub async fn find_pkl_executable() -> Result<Option<PklCli>> {
-    use crate::error::CliError;
+    use crate::types::CliError;
 
     // 1. Check proto-managed Pkl first
     if is_proto_available().await {
@@ -143,7 +143,7 @@ pub async fn find_pkl_executable() -> Result<Option<PklCli>> {
 
 /// Install Pkl via proto
 async fn install_via_proto(version: &str) -> Result<PklCli> {
-    use crate::error::CliError;
+    use crate::types::CliError;
     use std::process::Command;
 
     let mut cmd = Command::new("proto");
@@ -168,7 +168,7 @@ async fn install_via_proto(version: &str) -> Result<PklCli> {
 
 /// Check for proto-managed Pkl installation
 async fn check_proto_pkl() -> Result<PklCli> {
-    use crate::error::CliError;
+    use crate::types::CliError;
     use std::process::Command;
 
     let mut cmd = Command::new("proto");
@@ -204,18 +204,18 @@ async fn get_pkl_version(pkl_path: &PathBuf) -> Result<String> {
         .arg("--version")
         .output()
         .map_err(|e| {
-            crate::error::CliError::Generic(format!("Failed to get Pkl version: {}", e))
+            crate::types::CliError::Generic(format!("Failed to get Pkl version: {}", e))
         })?;
 
     if output.status.success() {
         let version_output = String::from_utf8_lossy(&output.stdout);
         parse_pkl_version(&version_output).ok_or_else(|| {
-            miette::Report::new(crate::error::CliError::Generic(
+            miette::Report::new(crate::types::CliError::Generic(
                 "Could not parse Pkl version output".to_string(),
             ))
         })
     } else {
-        Err(miette::Report::new(crate::error::CliError::Generic(
+        Err(miette::Report::new(crate::types::CliError::Generic(
             "Pkl version command failed".to_string(),
         )))
     }
@@ -238,7 +238,7 @@ fn parse_pkl_version(output: &str) -> Option<String> {
 /// Extract ZIP archive (Windows)
 #[cfg(target_os = "windows")]
 async fn extract_zip_archive(archive_bytes: &[u8], target_dir: &PathBuf) -> Result<PathBuf> {
-    use crate::error::CliError;
+    use crate::types::CliError;
 
     // For simplicity in this implementation, we'll use a basic approach
     // In production, you'd want to use a proper ZIP library like `zip`
@@ -283,7 +283,7 @@ async fn extract_zip_archive(archive_bytes: &[u8], target_dir: &PathBuf) -> Resu
 /// Extract ZIP archive (Non-Windows fallback)
 #[cfg(not(target_os = "windows"))]
 async fn extract_zip_archive(_archive_bytes: &[u8], _target_dir: &PathBuf) -> Result<PathBuf> {
-    Err(miette::Report::new(crate::error::CliError::Generic(
+    Err(miette::Report::new(crate::types::CliError::Generic(
         "ZIP extraction not implemented for this platform".to_string(),
     )))
 }
@@ -291,7 +291,7 @@ async fn extract_zip_archive(_archive_bytes: &[u8], _target_dir: &PathBuf) -> Re
 /// Extract tar.gz archive (Unix-like systems)
 #[cfg(not(target_os = "windows"))]
 async fn extract_tar_gz_archive(archive_bytes: &[u8], target_dir: &PathBuf) -> Result<PathBuf> {
-    use crate::error::CliError;
+    use crate::types::CliError;
 
     let archive_path = target_dir.join("pkl-cli.tar.gz");
     tokio::fs::write(&archive_path, archive_bytes)
@@ -335,7 +335,7 @@ async fn extract_tar_gz_archive(archive_bytes: &[u8], target_dir: &PathBuf) -> R
 /// Extract tar.gz archive (Windows fallback)
 #[cfg(target_os = "windows")]
 async fn extract_tar_gz_archive(_archive_bytes: &[u8], _target_dir: &PathBuf) -> Result<PathBuf> {
-    Err(miette::Report::new(crate::error::CliError::Generic(
+    Err(miette::Report::new(crate::types::CliError::Generic(
         "tar.gz extraction not implemented for Windows".to_string(),
     )))
 }
@@ -344,7 +344,7 @@ async fn extract_tar_gz_archive(_archive_bytes: &[u8], _target_dir: &PathBuf) ->
 ///
 /// Executes Pkl CLI with proper handling based on installation source
 pub async fn execute_pkl_command(pkl_cli: &PklCli, args: &[String]) -> Result<String> {
-    use crate::error::{CliError, pkl_execution_error};
+    use crate::types::{CliError, pkl_execution_error};
     use std::process::Command;
 
     let mut cmd = match &pkl_cli.source {
@@ -389,7 +389,7 @@ pub async fn execute_pkl_command(pkl_cli: &PklCli, args: &[String]) -> Result<St
 ///
 /// Downloads and extracts Pkl CLI from GitHub releases to ~/.moon/tools/pkl/<version>/
 async fn download_pkl_binary(version: &str) -> Result<PathBuf> {
-    use crate::error::CliError;
+    use crate::types::CliError;
     use std::env;
 
     // Platform detection
@@ -494,7 +494,7 @@ async fn download_pkl_binary(version: &str) -> Result<PathBuf> {
 ///
 /// Returns ~/.moon/tools/pkl/<version>/ path
 fn get_pkl_install_dir(version: &str) -> Result<PathBuf> {
-    use crate::error::CliError;
+    use crate::types::CliError;
 
     let home_dir = dirs::home_dir().ok_or_else(|| {
         miette::Report::new(CliError::Generic(
@@ -618,7 +618,7 @@ async fn test_moon_config_integration(pkl_cli: &PklCli) -> Result<bool> {
     use tempfile::NamedTempFile;
 
     // Create a simple test configuration
-    let mut temp_file = NamedTempFile::new().map_err(|e| crate::error::CliError::IoError {
+    let mut temp_file = NamedTempFile::new().map_err(|e| crate::types::CliError::IoError {
         context: "Creating temporary test file".to_string(),
         source: e,
     })?;
@@ -635,7 +635,7 @@ tasks {{
 }}
 "#
     )
-    .map_err(|e| crate::error::CliError::IoError {
+    .map_err(|e| crate::types::CliError::IoError {
         context: "Writing test configuration".to_string(),
         source: e,
     })?;
@@ -666,7 +666,7 @@ async fn test_extend_amend_features(pkl_cli: &PklCli) -> Result<bool> {
     use std::io::Write;
     use tempfile::TempDir;
 
-    let temp_dir = TempDir::new().map_err(|e| crate::error::CliError::IoError {
+    let temp_dir = TempDir::new().map_err(|e| crate::types::CliError::IoError {
         context: "Creating temporary directory".to_string(),
         source: e,
     })?;
@@ -674,7 +674,7 @@ async fn test_extend_amend_features(pkl_cli: &PklCli) -> Result<bool> {
     // Create base configuration
     let base_path = temp_dir.path().join("base.pkl");
     let mut base_file =
-        std::fs::File::create(&base_path).map_err(|e| crate::error::CliError::IoError {
+        std::fs::File::create(&base_path).map_err(|e| crate::types::CliError::IoError {
             context: "Creating base test file".to_string(),
             source: e,
         })?;
@@ -686,7 +686,7 @@ language = "rust"
 type = "library"
 "#
     )
-    .map_err(|e| crate::error::CliError::IoError {
+    .map_err(|e| crate::types::CliError::IoError {
         context: "Writing base configuration".to_string(),
         source: e,
     })?;
@@ -694,7 +694,7 @@ type = "library"
     // Create extending configuration
     let extend_path = temp_dir.path().join("extend.pkl");
     let mut extend_file =
-        std::fs::File::create(&extend_path).map_err(|e| crate::error::CliError::IoError {
+        std::fs::File::create(&extend_path).map_err(|e| crate::types::CliError::IoError {
             context: "Creating extend test file".to_string(),
             source: e,
         })?;
@@ -712,7 +712,7 @@ tasks {{
 "#,
         base_path.to_string_lossy()
     )
-    .map_err(|e| crate::error::CliError::IoError {
+    .map_err(|e| crate::types::CliError::IoError {
         context: "Writing extend configuration".to_string(),
         source: e,
     })?;
@@ -744,7 +744,7 @@ async fn test_schema_generation(pkl_cli: &PklCli) -> Result<bool> {
     use tempfile::NamedTempFile;
 
     // Create a simple schema test
-    let mut temp_file = NamedTempFile::new().map_err(|e| crate::error::CliError::IoError {
+    let mut temp_file = NamedTempFile::new().map_err(|e| crate::types::CliError::IoError {
         context: "Creating schema test file".to_string(),
         source: e,
     })?;
@@ -758,7 +758,7 @@ class Config {{
 }}
 "#
     )
-    .map_err(|e| crate::error::CliError::IoError {
+    .map_err(|e| crate::types::CliError::IoError {
         context: "Writing schema test file".to_string(),
         source: e,
     })?;

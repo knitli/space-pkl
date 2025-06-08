@@ -21,12 +21,12 @@ pub struct Cli {
 pub enum Commands {
     /// Convert Moon configuration files between formats
     Convert(crate::commands::convert::ConvertArgs),
-    /// Generate schemas or skeleton configurations
+    /// Generate schemas or template configurations
     #[command(subcommand)]
     Generate(crate::commands::generate::GenerateCommands),
-    /// Install external tools like Pkl CLI
+    /// Install Pkl CLI tool
     #[command(subcommand)]
-    Install(crate::commands::install::InstallCommands),
+    PklMe(crate::commands::pklme::InstallCommands),
 }
 
 /// CLI application with error handling
@@ -45,7 +45,7 @@ pub async fn run() -> Result<()> {
             }
         }
         Commands::Generate(commands) => {
-            tracing::info!("Starting schema/skeleton generation");
+            tracing::info!("Starting schema/template generation");
             match crate::commands::generate::handle_generate(commands).await {
                 Ok(()) => Ok(()),
                 Err(e) => {
@@ -54,9 +54,9 @@ pub async fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Install(commands) => {
+        Commands::PklMe(commands) => {
             tracing::info!("Starting tool installation");
-            match crate::commands::install::handle_install(commands).await {
+            match crate::commands::pklme::handle_install(commands).await {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     tracing::error!("Installation failed: {}", e);

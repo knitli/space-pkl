@@ -1932,6 +1932,7 @@ dependencies = [
  "regex",
  "reqwest",
  "schematic",
+ "schematic_types",
  "serde",
  "serde_json",
  "serde_yaml",

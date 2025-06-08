@@ -24,5 +24,5 @@ test_report.md
 - JSON Schemas: 0 files
 - TypeScript Definitions: 0 files
 
-### Skeleton Generation
-- Generated Skeletons: 0 files
+### Template Generation
+- Generated Templates: 0 files

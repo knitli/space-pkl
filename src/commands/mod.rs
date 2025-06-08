@@ -4,6 +4,7 @@
 
 pub mod convert;
 pub mod generate;
-pub mod install;
+pub mod pklme;
 
 // Re-export command structures for easier access
+

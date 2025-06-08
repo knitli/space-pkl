@@ -205,42 +205,42 @@ for config_type in project workspace toolchain template; do
 done
 
 echo ""
-print_status "INFO" "Testing skeleton generation..."
+print_status "INFO" "Testing template generation..."
 
-# Test skeleton generation
+# Test template generation
 for config_type in project workspace toolchain template; do
     for format in yaml json pkl; do
-        print_status "INFO" "Generating ${config_type} skeleton in ${format}..."
+        print_status "INFO" "Generating ${config_type} template in ${format}..."
 
-        if ./target/release/spklr generate skeleton \
+        if ./target/release/spklr generate template \
             --config-type $config_type \
             --format $format \
-            --output "test_output/${config_type}_skeleton.${format}" 2>/dev/null; then
+            --output "test_output/${config_type}_template.${format}" 2>/dev/null; then
 
-            print_status "SUCCESS" "$config_type $format skeleton generated"
+            print_status "SUCCESS" "$config_type $format template generated"
 
-            # Validate skeleton content
+            # Validate template content
             case $format in
                 "yaml")
-                    if validate_file_content "test_output/${config_type}_skeleton.${format}" "# Skeleton\|language:\|type:\|projects:\|node:\|title:"; then
-                        print_status "SUCCESS" "$config_type YAML skeleton has valid content"
+                    if validate_file_content "test_output/${config_type}_template.${format}" "# Template\|language:\|type:\|projects:\|node:\|title:"; then
+                        print_status "SUCCESS" "$config_type YAML template has valid content"
                     fi
                     ;;
                 "json")
                     if command -v jq &> /dev/null; then
-                        if jq empty "test_output/${config_type}_skeleton.${format}" 2>/dev/null; then
-                            print_status "SUCCESS" "$config_type JSON skeleton is valid"
+                        if jq empty "test_output/${config_type}_template.${format}" 2>/dev/null; then
+                            print_status "SUCCESS" "$config_type JSON template is valid"
                         fi
                     fi
                     ;;
                 "pkl")
-                    if grep -q "=" "test_output/${config_type}_skeleton.${format}"; then
-                        print_status "SUCCESS" "$config_type Pkl skeleton has valid syntax"
+                    if grep -q "=" "test_output/${config_type}_template.${format}"; then
+                        print_status "SUCCESS" "$config_type Pkl template has valid syntax"
                     fi
                     ;;
             esac
         else
-            print_status "WARNING" "$config_type $format skeleton generation not available"
+            print_status "WARNING" "$config_type $format template generation not available"
         fi
     done
 done
@@ -293,8 +293,8 @@ $(find test_output -maxdepth 1 -type f | head -20 | sed 's|test_output/||')
 - JSON Schemas: $(find test_output -name "*_schema.json" -type f 2>/dev/null | wc -l) files
 - TypeScript Definitions: $(find test_output -name "*_schema.ts" -type f 2>/dev/null | wc -l) files
 
-### Skeleton Generation
-- Generated Skeletons: $(find test_output -name "*_skeleton.*" -type f 2>/dev/null | wc -l) files
+### Template Generation
+- Generated Templates: $(find test_output -name "*_template.*" -type f 2>/dev/null | wc -l) files
 
 EOF
 

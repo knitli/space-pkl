@@ -17,4 +17,4 @@
 
 ## Eventually
 
-[] Open up functionality beyond `moon` config types. The schematic underpinnings allow for it, but we made the choice to strongly type for moon. I think the easy button it just having another command with looser types.
+[] Open up functionality beyond moon config types. The schematic underpinnings allow for it, but we made the choice to strongly type for moon. I think the easy button it just having another command with looser types.

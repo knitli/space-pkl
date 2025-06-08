@@ -1,43 +1,279 @@
-use crate::constants::{DATA_SIZE_UNITS, DURATION_UNITS};
+/**========================================================================
+ * *                              About
+ *
+ *   (c) 2025 Stash AI Inc. (aka Knitli)
+ *   Written by Adam Poulemanos [@bashandbone](https://github.com/bashandbone)
+ *   Licensed under the [Plain MIT License](https://plainlicense.org/licenses/permissive/mit/) (Tl;dr: do what you want, give credit, assume nothing)
+ *   moonrepo, Inc. created and maintains moon and schematic, under the
+ *   (traditional) MIT license. I don't know them, they seem nice.
+ *
+ *========================================================================**/
+//! =========================================================================
+//!                           # PklSchemaRenderer
+//! =========================================================================
+//! A full-service [schematic](https://moonrepo.github.io/schematic/) `SchemaRenderer` for Pkl.
+//!
+//! Schematic already has a [Pkl *template* renderer](https://github.com/moonrepo/schematic/blob/master/crates/schematic/src/schema/renderers/pkl_template.rs), but it only provides basic rendering for template/template generation. This implementation produces robustly typed schemas with type annotations, constraints, defaults, nuanced type handling, and idiomatic Pkl constructs.
+//!
+//! ## Why?
+//!
+//! Pkl offers a powerful schema system, with an exceptionally robust type system. This makes it ideal for configuration management in large repos and organizations. By opening the door to direct schema generation, you can now write configurations based on those schema that:
+//! - Have first-class IDE support, providing as-you-type type information, usage tips, documentation, syntax linting/highlighting, and more. See [the Pkl tools docs](https://pkl-lang.org/main/current/tools.html).
+//! - Can force schema, default, and config alignment across large repos. Pkl's powerful `extend`/`amend` capabilities allow you to *treat the root config as an enforced type*, and, if you allow it, allow people to make reasonable changes to defaults. A single source of truth with built-in flexibility.
+//! - Pkl itself is a powerful dynamic language. It is purpose-built for configurations. You can use its dynamic configs directly, or to generate conditional configs for any common format (yaml, toml, json, messagepack...). Or, use your Pkl to generate native Pkl static configs, `pcf`. (Syntax-wise, it feels closest to `Swift`)
+//! - The pkl language has sophisticated capabiilties you won't find in config formats -- for and when generators, complex conditionals, built-in converters, a lazy-evaluation-by-default framework.
+//!
+//! Bottom line: it's pretty cool.
+//!
+//! ## Key Features and Design Notes
+//!
+//! The renderer aims to:
+//! - Render idiomatic Pkl aligned to the [Pkl Style Guide](https://pkl-lang.org/main/current/style-guide/index.html) by default. There are some options that allow you to customize away from that default benchmark, but I wanted to deliver uncompromising pkl.
+//! - Provide robust type annotations and constraints, including:
+//!   - Full type coverage for deeply nested, complex, and optional types.
+//!   - Full use of Pkl's type system -- even including [`DataSize`](https://pkl-lang.org/main/current/language-reference/index.html#data-sizes) and [`Duration`](https://pkl-lang.org/main/current/language-reference/index.html#durations) if correctly marked by schematic.
+//!   - Complete implementation of schematic's available type constraints. Pkl's type system allows arbitrary constrained types. This is a valid type in Pkl:
+//!     ```pkl
+//!
+//!    /// self-validating email type -- valid pkl
+//!    typealias Email = String(
+//!       matches(
+//!         Regex(
+//!           #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"#
+//!         )
+//!        )
+//!       )
+//!
+//!     // and so is:
+//!
+//!     /// You could also define this long anonymous function in a
+//!     /// separate named function and just call it in the annotation.
+//!     /// You could also define it inline without defining an alias.
+//!     typealias UserData: Mapping<String, Listing<String>>(
+//!       List("email", "address", "id")
+//!         .every(
+//!           (k) -> this.keys.containsKey(k)) && // required keys present
+//!         this.every(
+//!           (k,v) -> !k.isEmpty && //no empty keys
+//!             !v.isEmpty &&                   // no empty values
+//!             if (k == "email"))
+//!               v.every(
+//!                 (email) -> email is Email   // all valid emails
+//!               ) &&
+//!               v.isDistinct                  // all emails are unique
+//!       )
+//!
+//!     class Customers {
+//!       users: UserData
+//!       product: AcmeType
+//!     }
+//!     ```
+//!   (The example is intentionally over-the-top, but hopefully you see why this helps make Pkl a powerful configuration language.)
+//!
+//!   - Handle complex types like `Struct`, `Array`, `Object`, `Tuple`, and `Union` with full type annotations and constraints.
+//!   - Support enum translations as type aliases or literal unions, with full type annotations.
+//!   - Allow for including or excluding (default) deprecated types. Included deprecations use Pkl's `@Deprecated` decorator with reason and `since` version if available from schematic.
+//!   - Correct marking of default values, such as with the `*` operator.
+//!   - Support for `open` classes/modules, enabling Pkl's `extend` and `amend` features.
+//!   - Renders the top-level `Config` struct as a module by default, but can be switched to a class. This allows you to directly use the generated module as a type using `amends`.
+//!   - Customizable options for module/class naming, indentation, and more.
+
+/**========================================================================
+ **                       ## A Crash Course in schematic
+ **========================================================================
+ **       (You can skip this if you're not going to work on the Renderer)
+ *========================================================================**/
+//
+//! I'm going to explain this simply because the type structure was hard to understand.
+//! This is my `schematic 101`. The [docs](https://moonrepo.github.io/schematic/) are good, they just didn't click for me.
+//!
+//! # Schematic’s Core Types & Traits
+//!
+//! - **`Config` (trait)**: Marks types you want to use as configuration roots. The runtime config (e.g., `ConfigSettingMap`) isn’t directly relevant for schema rendering—what matters is the structure of your Rust config types and how they’re described in the schema system.
+//!
+//! - **`SchemaGenerator`**: The bridge between your Rust types and the schema representation. It recursively walks your config’s type tree and produces an `IndexMap<String, Schema>`, where keys are **names of named types** (structs, enums, unions, and sometimes type aliases) and values are their `Schema` definitions. **Let's call this the `TypeMap`**.
+//!
+//!   **Key points about the `TypeMap`:**
+//!   - It’s flat at the top level: **all named types** from your config (root and nested, at any depth) are present as siblings.
+//!   - “Named type” = any type that schematic gives a name to (struct, enum, union, sometimes type alias). Primitives (`String`, `i32`, etc.) and standard generics (`Vec<_>`, `Option<_>`, `HashMap<_, _>`, etc.) are NOT included as top-level entries, unless you’ve defined a named alias and schematic captures that name.
+//!   - It **maps type names** (not field/property names) **to their schemas**. Fields are described within the `fields` property of struct or enum schemas.
+//!   - The type graph is potentially deep/complex: schemas reference each other, creating nested structures and supporting recursion.
+//!   - The `SchemaGenerator` creates this map and hands it to a `SchemaRenderer`.
+//!
+//! - **`SchemaRenderer` (trait)**: Takes the `TypeMap` and translates it into your target format (e.g., Pkl, TypeScript, JSON Schema, etc.). **The renderer is the translator.**
+//!
+//! ## `Schema` and `SchemaType`
+//!
+//! `Schema` represents a single named type in the `TypeMap`. Its most important field is `ty: SchemaType`, which describes the actual type.
+//!
+//! ```text
+//! Schema
+//!  ├── deprecated: Option<String>       // marked deprecated?
+//!  ├── description: Option<String>      // doc comment/description
+//!  ├── name: Option<String>             // type name (if any)
+//!  ├── nullable: bool                   // nullable?
+//!  └── ty: SchemaType                   // ← **This is the important part**
+//!      └── Struct(Box<StructType>)      // (could be any SchemaType variant)
+//!          ├── fields: IndexMap<String, Box<SchemaField>>
+//!          │   ├── "field1" -> SchemaField
+//!          │   │   └── schema: Schema
+//!          │   │       └── ty: SchemaType::String | Enum | Struct | ...
+//!          │   └── "field2" -> SchemaField
+//!          │       └── schema: Schema
+//!          │           └── ty: SchemaType::...
+//!          └── partial: bool
+//! ```
+//!
+//! **`SchemaType`** is an enum describing what kind of type the schema represents:
+//!
+//! ```rust,ignore
+//! pub enum SchemaType {
+//!   Null, Unknown,
+//!   Array(Box<ArrayType>), Boolean(Box<BooleanType>), Enum(Box<EnumType>),
+//!   Float(Box<FloatType>), Integer(Box<IntegerType>), Literal(Box<LiteralType>),
+//!   Object(Box<ObjectType>), Struct(Box<StructType>), String(Box<StringType>),
+//!   Tuple(Box<TupleType>), Union(Box<UnionType>),
+//!   Reference(String),  // ← This one's special
+//! }
+//! ```
+//!
+//! **`Reference`** is special. It’s a pointer to another named type **by name**, rather than by inlining the whole definition. In Rust, this happens when a struct (or enum/union) field uses a named type:
+//!
+//! ```rust,ignore
+//! pub struct Heroes {
+//!   marvel: Marvel, // ← `Marvel` is a `Reference` here
+//!   dc: DC,         // ← `DC` is also a `Reference`
+//! }
+//! ```
+//! References enable recursion (e.g., linked lists), sharing types, and keeping the type graph acyclic for rendering (that's arcane programmer-speak for 'no infinite loops').
+//!
+//! # How to introspect `SchemaType` variants
+//!
+//! - **`Struct`**: Access its fields via the `fields` property (`IndexMap<String, Box<SchemaField>>`).
+//! - **`Array`**: Look at the `items_type` property, which is a `Schema` for the array’s element type.
+//! - **`Object`**: Use `key_type` and `value_type` (both `Schema`) for key/value types.
+//! - **`Tuple`**: Use `items_types` (a vector of `Schema`) for each tuple slot. (Trick: `Tuple` = multiple `items_types`, `Array` = one `items_type`)
+//! - **`Enum`**: Use `values` for C-like literals (`Vec<LiteralValue>`), and `variants` (if present) for struct/tuple variants (`Option<IndexMap<String, Box<SchemaField>>>`).
+//! - **`Reference`**: The `String` is the name; look up that named type in the `TypeMap`.
+//!
+
+use std::collections::HashSet;
 use indexmap::IndexMap;
 use schematic::format::Format;
 use schematic::schema::{RenderResult, SchemaRenderer, RenderError};
 use schematic_types::*;
 
-/// Renders Pkl schema definitions with type annotations and constraints.
+use crate::constants::{DATA_SIZE_UNITS, DURATION_UNITS};
+use crate::types::{TypeMap, EnumTranslation, OpenStructs, ConfigTranslation, OptionalFormat, PropertyDefault, LoadedConfig};
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RenderType {
+    Template,
+    #[default]
+    Schema,
+}
+
+impl std::str::FromStr for RenderType {
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    match s.to_lowercase().as_str() {
+      "template" | "tmpl" | "t" => Ok(RenderType::Template),
+      "schema" | "sch" | "s" => Ok(RenderType::Schema),
+      _ => Err(RenderError::UnsupportedFormat {
+        format: s.to_string(),
+        available: vec!["template", "schema"],
+      }),
+    }
+  }
+}
+
+/// Renders idiomatic Pkl schema definitions with type annotations and constraints.
 pub struct PklSchemaRenderer {
-    schemas: IndexMap<String, Schema>,
+    schemas: TypeMap,
     options: PklSchemaOptions,
     depth: usize,
     /// Track typealiases to avoid duplicates
     typealiases: IndexMap<String, String>,
+    /// Track `Reference`s to prevent the universe from imploding
+    references: HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct PklSchemaOptions {
+    /// The name of the config to use for the root schema, LoadedConfig (moon config type or one you give); no default
+    ///
+    pub config_name: LoadedConfig,
     /// Include documentation comments from schema descriptions
     pub include_docs: bool,
+
     /// Include type constraints where available
+    /// Pkl allows for arbitrary type constraints within its types, so constraints will be enforced by Pkl's evaluator. Constraints are limited to those supported by schematic, which vary by type (they include regex pattern, min/max length or number, and required keys).
     pub include_constraints: bool,
-    /// Module name to use for the root schema (will be PascalCased)
-    pub module_name: Option<String>,
+
+    /// are you using this for a template or a schema? Primarily affects case decisions.
+    pub render_type: RenderType,
+
+    /// Disable references and render all types inline recursively.
+    pub disable_references: bool,
+
     /// Indentation string (default: 2 spaces)
     pub indent: String,
+
+    pub 
+
     /// Include default values in the schema
     pub include_defaults: bool,
+
     /// Include deprecated fields in the schema
     pub include_deprecated: bool,
+
+    /// Whether to comment out optional fields in the schema, useful for template-style generation
+    pub comment_out_optional: bool,
+
+    /// A list of properties to exclude from created schema
+    pub exclude_properties: Vec<&str>,
+
+    /// A list of imports to add to the generated module. These must be valid `pkl` import paths
+    pub added_imports: Vec<&str>,
+
+    /// How to translate enum types (typealias/literal_union; default: typealias)
+    pub enum_translation: EnumTranslation,
+
+    /// Whether to mark public structs as `open` when translated to classes (open/no; default: open)
+    pub open_structs: OpenStructs,
+
+    /// Whether to render the module as `open module ModuleName` (open/no; default: open)
+    pub open_module: OpenStructs,
+
+    /// How to translate the top-level `Config` struct (module/class; default: module)
+    pub config_translation: ConfigTranslation,
+
+    /// How to render optional type annotations (optional/optional_explicit_nothing; default: optional)
+    pub optional_format: OptionalFormat,
+
+    /// Whether to default to requiring properties or marking them optional when the schema lacks information on optionality.
+    pub property_default: PropertyDefault,
 }
 
 impl Default for PklSchemaOptions {
     fn default() -> Self {
         Self {
-            include_docs: true,
-            include_constraints: true,
-            module_name: None,
-            indent: "  ".to_string(),
-            include_defaults: true,
-            include_deprecated: false,
+          config_name: LoadedConfig::default(),
+          include_docs: true,
+          include_constraints: true,
+          render_type: RenderType,
+          disable_references: false,
+          indent: "  ".to_string(),
+          include_defaults: true,
+          include_deprecated: false,
+          comment_out_optional: false,
+          exclude_properties: Vec::new(),
+          added_imports: Vec::new(),
+          enum_translation: EnumTranslation::TypeAlias,
+          open_structs: OpenStructs::Open,
+          open_module: OpenStructs::Open,
+          config_translation: ConfigTranslation::Module,
+          optional_format: OptionalFormat::Optional,
+          property_default: PropertyDefault::RequireProperties,
         }
     }
 }
@@ -49,6 +285,7 @@ impl PklSchemaRenderer {
             options,
             depth: 0,
             typealiases: IndexMap::default(),
+            references: HashSet::new(),
         }
     }
 
@@ -732,7 +969,7 @@ impl PklSchemaRenderer {
         Ok(output.join("\n"))
     }
 
-    fn render_struct_as_class(
+    fn render_as_class(
         &mut self,
         name: &str,
         structure: &StructType,
@@ -914,6 +1151,10 @@ impl SchemaRenderer<String> for PklSchemaRenderer {
         Ok("unknown".to_string())
     }
 
+    fn find_root_schema(&mut self, schemas: &IndexMap<String, Schema>) -> Option<(&String, &Schema)> {
+       //
+    }
+
     fn render(&mut self, schemas: IndexMap<String, Schema>) -> RenderResult {
         self.schemas = schemas.clone();
 
@@ -945,7 +1186,7 @@ impl SchemaRenderer<String> for PklSchemaRenderer {
         // Render nested classes
         for (name, schema) in schemas.iter().skip(1) {
             if let SchemaType::Struct(structure) = &schema.ty {
-                output.push(self.render_struct_as_class(name, structure, schema)?);
+                output.push(self.render_as_class(name, structure, schema)?);
             }
         }
 

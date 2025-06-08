@@ -1,5 +1,5 @@
 // Integration tests need to import from the crate name
-use space_pklr::config_processor::*;
+use space_pklr::_rewrite::*;
 use space_pklr::pkl_tooling::*;
 use tempfile::TempDir;
 use tokio;
@@ -77,7 +77,7 @@ async fn test_pkl_version_management() {
 
 #[tokio::test]
 async fn test_enhanced_error_handling() {
-    use space_pklr::error::{CliError, validation_error};
+    use space_pklr::types::{CliError, validation_error};
     use std::path::PathBuf;
 
     // Test file not found error
@@ -88,7 +88,7 @@ async fn test_enhanced_error_handling() {
     assert!(error_string.contains("File not found"));
 
     // Test validation error
-    let validation_err = validation_error(std::io::Error::new(
+    let validation_err = validation_error(std::io::types::new(
         std::io::ErrorKind::InvalidData,
         "Invalid YAML",
     ));
@@ -186,7 +186,7 @@ async fn test_tracing_integration() {
 
 #[tokio::test]
 async fn test_schematic_integration_project_config() {
-    use space_pklr::config_processor::*;
+    use space_pklr::_rewrite::*;
     use tempfile::TempDir;
 
     let temp_dir = TempDir::new().unwrap();
@@ -290,7 +290,7 @@ async fn test_template_config_validation() {
 
 #[tokio::test]
 async fn test_error_handling_with_miette() {
-    use space_pklr::error::CliError;
+    use space_pklr::types::CliError;
     use std::path::PathBuf;
 
     // Test that our error types work with miette for rich error reporting

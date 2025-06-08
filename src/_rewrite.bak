@@ -1,0 +1,471 @@
+//! Core Logic Module for Space Pklr
+//!
+//! This module encapsulates the primary business logic for configuration loading, conversion,
+//! rendering, and schema/template generation.
+
+use std::path::Path;
+use serde_json;
+use serde_yaml;
+use std::str::FromStr;
+use schematic::ConfigLoader;
+use moon_config::{ProjectConfig, WorkspaceConfig, TemplateConfig, ToolchainConfig, TaskConfig};
+
+use crate::types::{CliError, LoadedConfig, SchemaFormat, MoonConfig};
+
+/// Load and validate a configuration file
+pub async fn load_config(
+    path: &Path,
+    _config_type: MoonConfig,
+    format: Option<SchemaFormat>,
+) -> Result<(String, SchemaFormat), CliError> {
+    // Read the file content
+    let content = tokio::fs::read_to_string(path)
+        .await
+        .map_err(|e| CliError::IoError {
+            context: format!("Reading config file: {}", path.display()),
+            source: e,
+        })?;
+
+    // Determine format
+    let detected_format = if let Some(fmt) = format {
+        fmt
+    } else {
+        detect_format_from_path(path)?
+    };
+
+    Ok((content, detected_format))
+}
+
+/// Load configuration using schematic's ConfigLoader with proper type safety
+pub async fn load_config_with_schematic(
+    path: &Path,
+    config_type: MoonConfig,
+    _format: Option<SchemaFormat>,
+) -> Result<LoadedConfig, CliError> {
+    match config_type {
+        MoonConfig::Project => {
+            let mut loader = ConfigLoader::<ProjectConfig>::new();
+            loader.file(path).map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            let result = loader.load().map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            Ok(LoadedConfig::Project(result.config))
+        }
+        MoonConfig::Workspace => {
+            let mut loader = ConfigLoader::<WorkspaceConfig>::new();
+            loader.file(path).map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            let result = loader.load().map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            Ok(LoadedConfig::Workspace(result.config))
+        }
+        MoonConfig::Toolchain => {
+            let mut loader = ConfigLoader::<ToolchainConfig>::new();
+            loader.file(path).map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            let result = loader.load().map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            Ok(LoadedConfig::Toolchain(result.config))
+        }
+        MoonConfig::Template => {
+            let mut loader = ConfigLoader::<TemplateConfig>::new();
+            loader.file(path).map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            let result = loader.load().map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            Ok(LoadedConfig::Template(result.config))
+        }
+        MoonConfig::Task => {
+            let mut loader = ConfigLoader::<TaskConfig>::new();
+            loader.file(path).map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            let result = loader.load().map_err(|e| CliError::ValidationError {
+                source: Box::new(e)
+            })?;
+
+            Ok(LoadedConfig::Task(result.config))
+        }
+        MoonConfig::All => {
+            Err(CliError::Generic("Cannot load config with type 'All' - specify a specific config type".to_string()))
+        }
+    }
+}
+
+pub fn render_config_with_schematic(
+  config: &LoadedConfig,
+  format: SchemaFormat,
+) -> Result<String, CliError> {
+  match format {
+    
+  }
+}
+
+
+
+/// Detect format from file path extension
+pub fn detect_format_from_path(path: &Path) -> Result<SchemaFormat, CliError> {
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .ok_or_else(|| CliError::UnsupportedFormat {
+            format: "unknown".to_string(),
+            available: vec!["yaml", "yml", "json", "pkl"],
+        })?;
+
+    SchemaFormat::from_str(extension)
+}
+
+/// Enhanced format detection that includes Pkl support
+pub fn detect_format_from_path_enhanced(path: &std::path::Path) -> Result<SchemaFormat, CliError> {
+    detect_format_from_path(path)
+}
+
+/// Check if Pkl CLI is available for Pkl operations
+pub async fn ensure_pkl_available() -> Result<crate::pkl_tooling::PklCli, CliError> {
+    // Try to find existing Pkl installation
+    if let Ok(Some(pkl_cli)) = crate::pkl_tooling::find_pkl_executable().await {
+        return Ok(pkl_cli);
+    }
+
+    // If not found, suggest installation
+    Err(CliError::PklInstallFailed {
+        reason: "Pkl CLI not found".to_string(),
+        help: Some("Install Pkl CLI with: spklr install pkl".to_string()),
+    })
+}
+
+/// Generate JSON schema for a Moon configuration type using schematic's existing capabilities
+pub fn generate_schema(
+    config_type: MoonConfig,
+    format: &str,
+) -> Result<String, CliError> {
+    use schematic::schema::{SchemaGenerator, JsonSchemaRenderer, TypeScriptRenderer};
+
+    let mut generator = SchemaGenerator::default();
+
+    // Add the appropriate config type to the generator using schematic's existing capabilities
+    match config_type {
+        MoonConfig::Project => {
+            generator.add::<moon_config::ProjectConfig>();
+        }
+        MoonConfig::Workspace => {
+            generator.add::<moon_config::WorkspaceConfig>();
+        }
+        MoonConfig::Toolchain => {
+            generator.add::<moon_config::ToolchainConfig>();
+        }
+        MoonConfig::Template => {
+            generator.add::<moon_config::TemplateConfig>();
+        }
+        MoonConfig::Task => {
+            generator.add::<moon_config::TaskConfig>();
+        }
+        MoonConfig::All => {
+            return Err(CliError::Generic("Cannot generate schema for 'All' - use generate_all_schemas functions".to_string()));
+        }
+    }
+
+    // Generate schema using schematic's existing renderers
+    match format {
+        "json-schema" => {
+            let temp_file = std::env::temp_dir().join("schema.json");
+            generator.generate(&temp_file, JsonSchemaRenderer::default())
+                .map_err(|e| CliError::ValidationError {
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+                })?;
+
+            std::fs::read_to_string(&temp_file)
+                .map_err(|e| CliError::IoError {
+                    context: "Reading generated schema".to_string(),
+                    source: e,
+                })
+        }
+        "typescript" => {
+            let temp_file = std::env::temp_dir().join("types.ts");
+            generator.generate(&temp_file, TypeScriptRenderer::default())
+                .map_err(|e| CliError::ValidationError {
+                    source: Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+                })?;
+
+            std::fs::read_to_string(&temp_file)
+                .map_err(|e| CliError::IoError {
+                    context: "Reading generated TypeScript types".to_string(),
+                    source: e,
+                })
+        }
+        _ => Err(CliError::UnsupportedFormat {
+            format: format.to_string(),
+            available: vec!["json-schema", "typescript"],
+        })
+    }
+}
+
+/// Generate schema for all configuration types and formats
+pub fn generate_all_schemas(format: &str) -> Result<Vec<(String, String)>, CliError> {
+    let mut results = Vec::new();
+
+    for config_type in MoonConfig::all_types() {
+        let schema_content = generate_schema(config_type, format)?;
+        let filename = format!("{}_schema.{}", config_type,
+            match format {
+                "json-schema" => "json",
+                "typescript" => "ts",
+                _ => format,
+            }
+        );
+        results.push((filename, schema_content));
+    }
+
+    Ok(results)
+}
+
+/// Generate schemas for all formats for a specific config type
+pub fn generate_all_formats_schema(config_type: MoonConfig) -> Result<Vec<(String, String)>, CliError> {
+    let formats = vec!["json-schema", "typescript"];
+    let mut results = Vec::new();
+
+    for format in formats {
+        let schema_content = generate_schema(config_type, format)?;
+        let filename = format!("{}_schema.{}", config_type,
+            match format {
+                "json-schema" => "json",
+                "typescript" => "ts",
+                _ => format,
+            }
+        );
+        results.push((filename, schema_content));
+    }
+
+    Ok(results)
+}
+
+/// Generate all schemas for all types and all formats
+pub fn generate_all_schemas_all_formats() -> Result<Vec<(String, String)>, CliError> {
+    let formats = vec!["json-schema", "typescript"];
+    let mut results = Vec::new();
+
+    for config_type in MoonConfig::all_types() {
+        for format in formats.iter() {
+            let schema_content = generate_schema(config_type, format)?;
+            let filename = format!("{}_schema.{}", config_type,
+                match *format {
+                    "json-schema" => "json",
+                    "typescript" => "ts",
+                    _ => format,
+                }
+            );
+            results.push((filename, schema_content));
+        }
+    }
+
+    Ok(results)
+}
+
+/// Generate schema using schematic's built-in renderers
+pub fn generate_schema_with_schematic(
+    config_type: MoonConfig,
+    format: &str,
+) -> Result<String, CliError> {
+    // For now, delegate to the existing working implementation
+    // This will be enhanced once we have the proper schematic API integration
+    generate_schema(config_type, format)
+}
+
+/// Generate default/template configuration using existing moon_config templates and defaults
+pub fn generate_template(
+    config_type: MoonConfig,
+    format: SchemaFormat,
+) -> Result<String, CliError> {
+    // Use existing moon_config templates when available, or generate defaults using schematic
+    let template_content = match config_type {
+        MoonConfig::Project => {
+            // Generate minimal project config using defaults
+            let config = moon_config::ProjectConfig::default();
+            serialize_config_in_format(&config, &format)?
+        }
+        MoonConfig::Workspace => {
+            // Generate minimal workspace config using defaults
+            let mut config = moon_config::WorkspaceConfig::default();
+            // Set some sensible defaults for workspace
+            config.projects = moon_config::WorkspaceProjects::Globs(vec!["projects/*".to_string()]);
+            serialize_config_in_format(&config, &format)?
+        }
+        MoonConfig::Toolchain => {
+            // Generate minimal toolchain config using defaults
+            let config = moon_config::ToolchainConfig::default();
+            serialize_config_in_format(&config, &format)?
+        }
+        MoonConfig::Template => {
+            // Generate minimal template config using defaults
+            let config = moon_config::TemplateConfig::default();
+            serialize_config_in_format(&config, &format)?
+        }
+        MoonConfig::Task => {
+            // Generate minimal task config using defaults
+            let config = moon_config::TaskConfig::default();
+            serialize_config_in_format(&config, &format)?
+        }
+        MoonConfig::All => {
+            return Err(CliError::Generic("Cannot generate template for 'All' - use generate_all_templates functions".to_string()));
+        }
+    };
+
+    // Convert to requested format if needed
+    match format {
+        SchemaFormat::Yaml => {
+            // If template is already YAML, return as is, otherwise convert
+            if template_content.starts_with('#') || template_content.contains(':') {
+                Ok(template_content)
+            } else {
+                convert_to_format(&template_content, SchemaFormat::Json, SchemaFormat::Yaml)
+            }
+        }
+        SchemaFormat::Json => {
+            convert_to_format(&template_content, SchemaFormat::Yaml, SchemaFormat::Json)
+        }
+        SchemaFormat::Pkl => {
+            convert_to_format(&template_content, SchemaFormat::Yaml, SchemaFormat::Pkl)
+        }
+    }
+}
+
+/// Generate template for all configuration types
+pub fn generate_all_templates(format: SchemaFormat) -> Result<Vec<(String, String)>, CliError> {
+    let mut results = Vec::new();
+
+    for config_type in MoonConfig::all_types() {
+        let template_content = generate_template(config_type, format.clone())?;
+        let filename = format!("{}.{}", config_type, format);
+        results.push((filename, template_content));
+    }
+
+    Ok(results)
+}
+
+/// Generate templates for all formats for a specific config type
+pub fn generate_all_formats_template(config_type: MoonConfig) -> Result<Vec<(String, String)>, CliError> {
+    let formats = vec![SchemaFormat::Yaml, SchemaFormat::Json, SchemaFormat::Pkl];
+    let mut results = Vec::new();
+
+    for format in formats {
+        let template_content = generate_template(config_type, format.clone())?;
+        let filename = format!("{}.{}", config_type, format);
+        results.push((filename, template_content));
+    }
+
+    Ok(results)
+}
+
+/// Generate all templates for all types and all formats
+pub fn generate_all_templates_all_formats() -> Result<Vec<(String, String)>, CliError> {
+    let formats = vec![SchemaFormat::Yaml, SchemaFormat::Json, SchemaFormat::Pkl];
+    let mut results = Vec::new();
+
+    for config_type in MoonConfig::all_types() {
+        for format in formats.iter() {
+            let template_content = generate_template(config_type, format.clone())?;
+            let filename = format!("{}.{}", config_type, format);
+            results.push((filename, template_content));
+        }
+    }
+
+    Ok(results)
+}
+
+/// Generate template configurations using schematic's default mechanisms
+pub fn generate_template_with_schematic(
+    config_type: MoonConfig,
+    format: SchemaFormat,
+) -> Result<String, CliError> {
+    // Create default configuration using schematic's default mechanisms
+    let loaded_config = match config_type {
+        MoonConfig::Project => {
+            let config = ProjectConfig::default();
+            LoadedConfig::Project(config)
+        }
+        MoonConfig::Workspace => {
+            let mut config = WorkspaceConfig::default();
+            // Set some sensible defaults for workspace
+            config.projects = moon_config::WorkspaceProjects::Globs(vec!["projects/*".to_string()]);
+            LoadedConfig::Workspace(config)
+        }
+        MoonConfig::Toolchain => {
+            let config = ToolchainConfig::default();
+            LoadedConfig::Toolchain(config)
+        }
+        MoonConfig::Template => {
+            let config = TemplateConfig::default();
+            LoadedConfig::Template(config)
+        }
+        MoonConfig::Task => {
+            let config = TaskConfig::default();
+            LoadedConfig::Task(config)
+        }
+        MoonConfig::All => {
+            return Err(CliError::Generic("Cannot generate template for 'all' - use specific functions".to_string()));
+        }
+    };
+
+    // Use the new schematic-based renderer
+    render_config_with_schematic(&loaded_config, format)
+}
+
+/// Helper to serialize a config struct in the requested format
+fn serialize_config_in_format<T: serde::Serialize>(
+    config: &T,
+    format: &SchemaFormat,
+) -> Result<String, CliError> {
+    match format {
+        SchemaFormat::Yaml => {
+            serde_yaml::to_string(config)
+                .map_err(|e| CliError::ValidationError {
+                    source: Box::new(e)
+                })
+        }
+        SchemaFormat::Json => {
+            serde_json::to_string_pretty(config)
+                .map_err(|e| CliError::ValidationError {
+                    source: Box::new(e)
+                })
+        }
+        SchemaFormat::Pkl => {
+            // Convert to YAML first, then to Pkl
+            let yaml = serde_yaml::to_string(config)
+                .map_err(|e| CliError::ValidationError {
+                    source: Box::new(e)
+                })?;
+            convert_to_pkl(&yaml, SchemaFormat::Yaml)
+        }
+    }
+}
+
+/// Helper to convert between formats
+fn convert_to_format(
+    content: &str,
+    from_format: SchemaFormat,
+    to_format: SchemaFormat,
+) -> Result<String, CliError> {
+    if from_format == to_format {
+        return Ok(content.to_string());
+    }
+
+    convert_config(content, from_format, to_format)
+}
