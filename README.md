@@ -26,7 +26,7 @@ Pkl is a powerful dynamic language purpose-built for configurations. It provides
 
 ## Contributing
 
-Contributions are welcome! If you’re interested in helping out, take a look at the current implementation in [`src/new_renderer.rs`](https://github.com/knitli/space-pklr/blob/main/src/new_renderer.rs) and the [TODO list](https://github.com/knitli/space-pklr/blob/b9cb9492bbcce256fc9d052e49aeed73e8f64be0/TODO.md).
+Contributions are welcome! If you’re interested in helping out, take a look at the current implementation in [`src/new_renderer.rs`](https://github.com/knitli/space-pklr/blob/main/src/new_renderer.rs).
 
 ## License
 
