@@ -1,7 +1,3 @@
-Based on the **new_renderer.rs** file, here's a concise README with a straightforward tone that mirrors your writing style:
-
----
-
 # space-pklr
 
 **space-pklr** is a project-in-progress aimed at creating a full-featured renderer for Pkl schemas. It builds on the schematic framework to provide robust support for type annotations, constraints, and idiomatic Pkl formatting.
@@ -21,6 +17,8 @@ This project is still under development, and many core features are incomplete. 
 - Supports complex type annotations and constraints, including enums, tuples, and unions.
 - Handles deprecated fields and default values gracefully.
 - Includes options for customization, such as module/class structures and commenting out optional fields for templates.
+
+See [TODO](TODO.md). 
 
 ## Why Pkl?
 
