@@ -32,5 +32,4 @@ Contributions are welcome! If you’re interested in helping out, take a look at
 
 ## License
 
-This project is licensed under [Plain MIT]().
-
+This project is licensed under [Plain MIT](LICENSE.md).
