@@ -1,6 +1,6 @@
 # space-pklr
 
-**space-pklr** is a project-in-progress aimed at creating a full-featured renderer for Pkl schemas. It builds on the [schematic](https://github.com/moonrepo/schematic) framework to provide robust support for type annotations, constraints, and idiomatic Pkl formatting.
+**space-pklr** is a project-in-progress aimed at creating a full-featured renderer for Pkl schemas. It builds on the [schematic](https://github.com/moonrepo/schematic) crate to provide robust support for type annotations, constraints, and idiomatic Pkl formatting.
 It renders Rust schematic schema, and anything that can be converted into typed schematic schema (currently Typescript and Json Schema)
 
 ## Current Status
